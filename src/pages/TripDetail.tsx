@@ -13,6 +13,7 @@ import { TimelineTab } from '../components/trip/TimelineTab';
 import { ExpensesTab } from '../components/trip/ExpensesTab';
 import { IdeasTab } from '../components/trip/IdeasTab';
 import { ActivityTab } from '../components/trip/ActivityTab';
+import { MembersTab } from '../components/trip/MembersTab';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 function TripDetailContent() {
@@ -33,7 +34,7 @@ function TripDetailContent() {
     if (trip && user && !trip.members[user.uid]) {
       const tripRef = doc(db, 'trips', trip.id);
       updateDoc(tripRef, {
-        [`members.${user.uid}`]: 'viewer',
+        [`members.${user.uid}`]: 'editor',
         updatedAt: serverTimestamp()
       }).catch(err => console.error("Error joining trip:", err));
     }
@@ -77,11 +78,12 @@ function TripDetailContent() {
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
         <Tabs defaultValue="timeline" className="w-full h-full flex flex-col">
-          <TabsList className="grid w-full max-w-md grid-cols-4 mb-6">
+          <TabsList className="grid w-full max-w-lg grid-cols-5 mb-6">
             <TabsTrigger value="timeline">{t('timeline')}</TabsTrigger>
             <TabsTrigger value="expenses">{t('expenses')}</TabsTrigger>
             <TabsTrigger value="ideas">{t('ideas')}</TabsTrigger>
             <TabsTrigger value="activity">{t('history')}</TabsTrigger>
+            <TabsTrigger value="members">{t('members_tab') || 'Members'}</TabsTrigger>
           </TabsList>
           
           <div className="flex-1 bg-white rounded-lg border shadow-sm p-4 sm:p-6 overflow-hidden">
@@ -96,6 +98,9 @@ function TripDetailContent() {
             </TabsContent>
             <TabsContent value="activity" className="h-full m-0 data-[state=active]:flex flex-col">
               <ActivityTab tripId={tripId!} />
+            </TabsContent>
+            <TabsContent value="members" className="h-full m-0 data-[state=active]:flex flex-col">
+              <MembersTab tripId={tripId!} tripMembers={trip.members} />
             </TabsContent>
           </div>
         </Tabs>

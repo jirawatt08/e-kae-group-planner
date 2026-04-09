@@ -11,38 +11,104 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Receipt, Trash2 } from 'lucide-react';
+import { Plus, Receipt, Trash2, Users } from 'lucide-react';
 
-export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string, canEdit: boolean, tripMembers: Record<string, string> }) {
+// === Helpers ===
+
+/** Backward-compat: build a paidByMap from old or new data */
+function getPaidByMap(expense: any): Record<string, number> {
+  if (expense.paidByMap && typeof expense.paidByMap === 'object') return expense.paidByMap;
+  if (expense.paidBy) return { [expense.paidBy]: expense.amount };
+  return {};
+}
+
+/** Calculate what each person owes for an expense */
+function calcShares(amount: number, splitAmong: string[], extras: Record<string, number>): Record<string, number> {
+  const totalExtras = Object.values(extras).reduce((s, v) => s + v, 0);
+  const sharedBase = Math.max(0, amount - totalExtras);
+  const perPerson = splitAmong.length > 0 ? sharedBase / splitAmong.length : 0;
+  const shares: Record<string, number> = {};
+  for (const uid of splitAmong) {
+    shares[uid] = perPerson + (extras[uid] || 0);
+  }
+  return shares;
+}
+
+function displayName(uid: string, currentUid: string | undefined, tYou: string, tMe: string): string {
+  return uid === currentUid ? tYou : `User ${uid.substring(0, 5)}`;
+}
+
+// === Component ===
+
+export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string; canEdit: boolean; tripMembers: Record<string, string> }) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { expenses } = useTripData();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<any>(null);
-  const [newExpense, setNewExpense] = useState({
+
+  const memberIds = Object.keys(tripMembers);
+
+  const emptyForm = () => ({
     title: '',
     amount: '',
-    paidBy: user?.uid || '',
-    splitAmong: Object.keys(tripMembers)
+    paidByUids: [user?.uid || ''] as string[],
+    paidAmounts: {} as Record<string, string>,
+    splitAmong: [...memberIds],
+    extras: {} as Record<string, string>, // uid -> extra amount string
   });
 
+  const [newExpense, setNewExpense] = useState(emptyForm());
+
   useEffect(() => {
-    if (user && !newExpense.paidBy) {
-      setNewExpense(prev => ({ ...prev, paidBy: user.uid }));
+    if (user && newExpense.paidByUids.length === 0) {
+      setNewExpense(prev => ({ ...prev, paidByUids: [user.uid] }));
     }
   }, [user]);
 
-  const handleCreateExpense = async (e: React.FormEvent) => {
+  // --- Payer toggles ---
+  const togglePayer = (uid: string, checked: boolean, setState: React.Dispatch<React.SetStateAction<any>>) => {
+    setState((prev: any) => {
+      let uids = [...(prev.paidByUids || [])];
+      const amounts = { ...(prev.paidAmounts || {}) };
+      if (checked) {
+        if (!uids.includes(uid)) uids.push(uid);
+      } else {
+        uids = uids.filter((u: string) => u !== uid);
+        delete amounts[uid];
+      }
+      return { ...prev, paidByUids: uids, paidAmounts: amounts };
+    });
+  };
+
+  // --- Create ---
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !canEdit) return;
-
     const amountNum = parseFloat(newExpense.amount);
     if (isNaN(amountNum) || amountNum <= 0) return;
+    if (newExpense.paidByUids.length === 0) return;
+
+    // Build paidByMap
+    const paidByMap: Record<string, number> = {};
+    for (const uid of newExpense.paidByUids) {
+      paidByMap[uid] = parseFloat(newExpense.paidAmounts[uid] || '0') || 0;
+    }
+    if (newExpense.paidByUids.length === 1 && paidByMap[newExpense.paidByUids[0]] === 0) {
+      paidByMap[newExpense.paidByUids[0]] = amountNum;
+    }
+
+    // Build extras
+    const extras: Record<string, number> = {};
+    for (const uid of newExpense.splitAmong) {
+      const v = parseFloat(newExpense.extras[uid] || '0') || 0;
+      if (v > 0) extras[uid] = v;
+    }
 
     const initialPaidStatus: Record<string, boolean> = {};
     newExpense.splitAmong.forEach(uid => {
-      initialPaidStatus[uid] = uid === newExpense.paidBy; // Payer has already "paid" their share
+      initialPaidStatus[uid] = uid in paidByMap;
     });
 
     try {
@@ -50,34 +116,56 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string, 
         tripId,
         title: newExpense.title,
         amount: amountNum,
-        paidBy: newExpense.paidBy,
+        paidBy: newExpense.paidByUids[0],
+        paidByMap,
         splitAmong: newExpense.splitAmong,
+        extras,
+        splitMode: Object.keys(extras).length > 0 ? 'extras' : 'equal',
+        exactSplits: {},
         paidStatus: initialPaidStatus,
         createdBy: user.uid,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       });
       await logActivity(tripId, 'Added expense', `${newExpense.title} (฿${amountNum})`);
       setIsCreateOpen(false);
-      setNewExpense({ title: '', amount: '', paidBy: user.uid, splitAmong: Object.keys(tripMembers) });
+      setNewExpense(emptyForm());
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, `trips/${tripId}/expenses`);
     }
   };
 
-  const handleUpdateExpense = async (e: React.FormEvent) => {
+  // --- Update ---
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !canEdit || !editingExpense) return;
-
     const amountNum = parseFloat(editingExpense.amount);
     if (isNaN(amountNum) || amountNum <= 0) return;
+
+    const paidByMap: Record<string, number> = {};
+    for (const uid of editingExpense.paidByUids) {
+      paidByMap[uid] = parseFloat(editingExpense.paidAmounts[uid] || '0') || 0;
+    }
+    if (editingExpense.paidByUids.length === 1 && paidByMap[editingExpense.paidByUids[0]] === 0) {
+      paidByMap[editingExpense.paidByUids[0]] = amountNum;
+    }
+
+    const extras: Record<string, number> = {};
+    for (const uid of editingExpense.splitAmong) {
+      const v = parseFloat(editingExpense.extras?.[uid] || '0') || 0;
+      if (v > 0) extras[uid] = v;
+    }
 
     try {
       await updateDoc(doc(db, `trips/${tripId}/expenses`, editingExpense.id), {
         title: editingExpense.title,
         amount: amountNum,
-        paidBy: editingExpense.paidBy,
-        updatedAt: serverTimestamp()
+        paidBy: editingExpense.paidByUids[0],
+        paidByMap,
+        extras,
+        splitMode: Object.keys(extras).length > 0 ? 'extras' : 'equal',
+        exactSplits: {},
+        updatedAt: serverTimestamp(),
       });
       await logActivity(tripId, 'Updated expense', `${editingExpense.title} (฿${amountNum})`);
       setIsEditOpen(false);
@@ -87,41 +175,150 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string, 
     }
   };
 
-  const openEditDialog = (expense: any) => {
+  // --- Edit dialog prep ---
+  const openEdit = (expense: any) => {
+    const existingMap = getPaidByMap(expense);
+    const paidByUids = Object.keys(existingMap);
+    const paidAmounts: Record<string, string> = {};
+    paidByUids.forEach(uid => { paidAmounts[uid] = existingMap[uid].toString(); });
+
+    const extrasStr: Record<string, string> = {};
+    if (expense.extras) {
+      Object.entries(expense.extras).forEach(([k, v]) => { extrasStr[k] = String(v); });
+    }
+
     setEditingExpense({
       ...expense,
-      amount: expense.amount.toString()
+      amount: expense.amount.toString(),
+      paidByUids,
+      paidAmounts,
+      extras: extrasStr,
     });
     setIsEditOpen(true);
   };
 
-  const togglePaidStatus = async (expenseId: string, userId: string, currentStatus: boolean) => {
+  // --- Toggle paid status ---
+  const togglePaid = async (expenseId: string, userId: string, current: boolean) => {
     if (!canEdit) return;
     try {
       await updateDoc(doc(db, `trips/${tripId}/expenses`, expenseId), {
-        [`paidStatus.${userId}`]: !currentStatus,
-        updatedAt: serverTimestamp()
+        [`paidStatus.${userId}`]: !current,
+        updatedAt: serverTimestamp(),
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `trips/${tripId}/expenses/${expenseId}`);
     }
   };
 
+  // --- Delete ---
   const handleDelete = async (expenseId: string) => {
     if (!canEdit) return;
-    const expenseToDelete = expenses.find(e => e.id === expenseId);
+    const exp = expenses.find(e => e.id === expenseId);
     try {
       await deleteDoc(doc(db, `trips/${tripId}/expenses`, expenseId));
-      if (expenseToDelete) {
-        await logActivity(tripId, 'Deleted expense', expenseToDelete.title);
-      }
+      if (exp) await logActivity(tripId, 'Deleted expense', exp.title);
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `trips/${tripId}/expenses/${expenseId}`);
     }
   };
 
-  const memberIds = Object.keys(tripMembers);
+  // === Shared form renderer ===
+  const renderForm = (data: any, setState: React.Dispatch<React.SetStateAction<any>>, onSubmit: (e: React.FormEvent) => void, submitLabel: string) => (
+    <form onSubmit={onSubmit} className="space-y-4 pt-4 max-h-[70vh] overflow-y-auto">
+      {/* Title */}
+      <div className="space-y-2">
+        <Label>{t('what_for')}</Label>
+        <Input value={data.title} onChange={e => setState((p: any) => ({ ...p, title: e.target.value }))} required />
+      </div>
 
+      {/* Total Amount */}
+      <div className="space-y-2">
+        <Label>{t('amount')} (฿)</Label>
+        <Input type="number" step="0.01" min="0" value={data.amount} onChange={e => setState((p: any) => ({ ...p, amount: e.target.value }))} required />
+      </div>
+
+      {/* Who Paid */}
+      <div className="space-y-2">
+        <Label>{t('who_paid')}</Label>
+        <p className="text-xs text-gray-500">{t('multi_payer_hint') || 'Check who paid and enter their amount'}</p>
+        <div className="space-y-2 bg-gray-50 p-3 rounded-md border">
+          {memberIds.map(uid => {
+            const isChecked = (data.paidByUids || []).includes(uid);
+            return (
+              <div key={uid} className="flex items-center gap-2">
+                <Checkbox checked={isChecked} onCheckedChange={(c) => togglePayer(uid, !!c, setState)} />
+                <span className="flex-1 text-sm truncate">{displayName(uid, user?.uid, t('me'), t('me'))}</span>
+                {isChecked && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-500">฿</span>
+                    <Input type="number" step="0.01" min="0" className="w-24 h-8" placeholder="Amount"
+                      value={data.paidAmounts?.[uid] || ''}
+                      onChange={e => setState((p: any) => ({ ...p, paidAmounts: { ...(p.paidAmounts || {}), [uid]: e.target.value } }))} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Extra Costs */}
+      <div className="space-y-2">
+        <Label>{t('extra_costs') || 'Extra / Personal Items'}</Label>
+        <p className="text-xs text-gray-500">{t('extra_costs_hint') || 'Add extra cost if someone ordered something just for themselves (e.g. extra dish). Leave blank if none.'}</p>
+        <div className="space-y-2 bg-amber-50 p-3 rounded-md border border-amber-200">
+          {memberIds.map(uid => (
+            <div key={uid} className="flex items-center gap-2">
+              <span className="flex-1 text-sm truncate">{displayName(uid, user?.uid, t('me'), t('me'))}</span>
+              <span className="text-xs text-gray-500">+฿</span>
+              <Input type="number" step="0.01" min="0" className="w-24 h-8" placeholder="0"
+                value={data.extras?.[uid] || ''}
+                onChange={e => setState((p: any) => ({ ...p, extras: { ...(p.extras || {}), [uid]: e.target.value } }))} />
+            </div>
+          ))}
+        </div>
+        {/* Live preview */}
+        {data.amount && parseFloat(data.amount) > 0 && (() => {
+          const amt = parseFloat(data.amount) || 0;
+          const extrasNum: Record<string, number> = {};
+          memberIds.forEach(uid => {
+            const v = parseFloat(data.extras?.[uid] || '0') || 0;
+            if (v > 0) extrasNum[uid] = v;
+          });
+          const shares = calcShares(amt, data.splitAmong || memberIds, extrasNum);
+          const totalExtras = Object.values(extrasNum).reduce((s, v) => s + v, 0);
+          const sharedBase = Math.max(0, amt - totalExtras);
+          const perPerson = (data.splitAmong || memberIds).length > 0 ? sharedBase / (data.splitAmong || memberIds).length : 0;
+
+          return (
+            <div className="mt-3 p-3 bg-white rounded-md border text-sm">
+              <p className="font-medium text-gray-700 mb-2">{t('preview') || '💡 Preview'}</p>
+              <p className="text-xs text-gray-500 mb-1">
+                {t('shared_base') || 'Shared base'}: ฿{sharedBase.toLocaleString()} ÷ {(data.splitAmong || memberIds).length} = ฿{perPerson.toLocaleString(undefined, { maximumFractionDigits: 2 })} {t('each') || 'each'}
+              </p>
+              <div className="space-y-1">
+                {(data.splitAmong || memberIds).map((uid: string) => (
+                  <div key={uid} className="flex justify-between">
+                    <span className="text-gray-600">{displayName(uid, user?.uid, t('you'), t('me'))}</span>
+                    <span className="font-medium">
+                      ฿{shares[uid]?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      {(extrasNum[uid] || 0) > 0 && <span className="text-amber-600 text-xs ml-1">(+฿{extrasNum[uid]})</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <Button type="submit">{submitLabel}</Button>
+      </div>
+    </form>
+  );
+
+  // === Main render ===
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-6">
@@ -136,98 +333,55 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string, 
               <DialogHeader>
                 <DialogTitle>{t('add_new_expense')}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCreateExpense} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">{t('what_for')}</Label>
-                  <Input id="title" value={newExpense.title} onChange={e => setNewExpense({...newExpense, title: e.target.value})} required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="amount">{t('amount')} (฿)</Label>
-                  <Input id="amount" type="number" step="0.01" min="0" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: e.target.value})} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('who_paid')}</Label>
-                  <select 
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                    value={newExpense.paidBy}
-                    onChange={e => setNewExpense({...newExpense, paidBy: e.target.value})}
-                  >
-                    {memberIds.map(uid => (
-                      <option key={uid} value={uid}>{uid === user?.uid ? t('me') : `User ${uid.substring(0,5)}`}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex justify-end">
-                  <Button type="submit">{t('save_expense')}</Button>
-                </div>
-              </form>
+              {renderForm(newExpense, setNewExpense, handleCreate, t('save_expense'))}
             </DialogContent>
           </Dialog>
         )}
       </div>
 
+      {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('edit_expense') || 'Edit Expense'}</DialogTitle>
           </DialogHeader>
-          {editingExpense && (
-            <form onSubmit={handleUpdateExpense} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-title">{t('what_for')}</Label>
-                <Input id="edit-title" value={editingExpense.title} onChange={e => setEditingExpense({...editingExpense, title: e.target.value})} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-amount">{t('amount')} (฿)</Label>
-                <Input id="edit-amount" type="number" step="0.01" min="0" value={editingExpense.amount} onChange={e => setEditingExpense({...editingExpense, amount: e.target.value})} required />
-              </div>
-              <div className="space-y-2">
-                <Label>{t('who_paid')}</Label>
-                <select 
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                  value={editingExpense.paidBy}
-                  onChange={e => setEditingExpense({...editingExpense, paidBy: e.target.value})}
-                >
-                  {memberIds.map(uid => (
-                    <option key={uid} value={uid}>{uid === user?.uid ? t('me') : `User ${uid.substring(0,5)}`}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex justify-end">
-                <Button type="submit">{t('update_event') || 'Update Expense'}</Button>
-              </div>
-            </form>
-          )}
+          {editingExpense && renderForm(editingExpense, setEditingExpense, handleUpdate, t('update_event') || 'Update')}
         </DialogContent>
       </Dialog>
 
+      {/* Expense List */}
       <div className="flex-1 overflow-y-auto">
         {expenses.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            {t('no_expenses')}
-          </div>
+          <div className="text-center py-12 text-gray-500">{t('no_expenses')}</div>
         ) : (
           <div className="space-y-4">
-            {expenses.map((expense) => {
-              const splitAmount = expense.amount / expense.splitAmong.length;
-              
+            {expenses.map(expense => {
+              const paidByMap = getPaidByMap(expense);
+              const extras: Record<string, number> = expense.extras || {};
+              const shares = calcShares(expense.amount, expense.splitAmong, extras);
+              const totalExtras = Object.values(extras).reduce((s: number, v: number) => s + v, 0);
+              const sharedBase = Math.max(0, expense.amount - totalExtras);
+              const perPerson = expense.splitAmong.length > 0 ? sharedBase / expense.splitAmong.length : 0;
+              const payerNames = Object.entries(paidByMap)
+                .map(([uid, amt]) => `${displayName(uid, user?.uid, t('you'), t('me'))} ฿${(amt as number).toLocaleString()}`)
+                .join(', ');
+
               return (
                 <div key={expense.id} className="bg-white border rounded-lg p-4 shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center">
-                      <div className="bg-green-100 p-2 rounded-full mr-3 cursor-pointer" onClick={() => canEdit && openEditDialog(expense)}>
+                  {/* Header */}
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center cursor-pointer" onClick={() => canEdit && openEdit(expense)}>
+                      <div className="bg-green-100 p-2 rounded-full mr-3">
                         <Receipt className="h-5 w-5 text-green-600" />
                       </div>
-                      <div className="cursor-pointer" onClick={() => canEdit && openEditDialog(expense)}>
+                      <div>
                         <h3 className="font-semibold text-gray-900">{expense.title}</h3>
-                        <p className="text-sm text-gray-500">
-                          {t('paid_by')} {expense.paidBy === user?.uid ? t('you') : `User ${expense.paidBy.substring(0,5)}`} • ฿{expense.amount.toLocaleString()}
-                        </p>
+                        <p className="text-sm text-gray-500">{t('paid_by')} {payerNames} • ฿{expense.amount.toLocaleString()}</p>
                       </div>
                     </div>
                     {canEdit && (
                       <div className="flex space-x-1">
-                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-primary" onClick={() => openEditDialog(expense)}>
+                        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-primary" onClick={() => openEdit(expense)}>
                           <Plus className="h-4 w-4 rotate-45" />
                         </Button>
                         <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => handleDelete(expense.id)}>
@@ -236,27 +390,40 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string, 
                       </div>
                     )}
                   </div>
-                  
+
+                  {/* Split breakdown */}
                   <div className="bg-gray-50 rounded-md p-3">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{t('split_each')} (฿{splitAmount.toLocaleString()} each)</h4>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                      {t('split_each')} (฿{perPerson.toLocaleString(undefined, { maximumFractionDigits: 2 })} {t('each') || 'each'}
+                      {totalExtras > 0 && ` + ${t('extras') || 'extras'}`})
+                    </h4>
                     <div className="space-y-2">
                       {expense.splitAmong.map((uid: string) => {
-                        const hasPaid = expense.paidStatus[uid] || false;
-                        const isPayer = uid === expense.paidBy;
-                        
+                        const personShare = shares[uid] || 0;
+                        const personExtra = extras[uid] || 0;
+                        const hasPaid = expense.paidStatus?.[uid] || false;
+                        const isPayer = uid in paidByMap;
+
                         return (
                           <div key={uid} className="flex items-center justify-between text-sm">
-                            <span className={isPayer ? "font-medium" : ""}>
-                              {uid === user?.uid ? t('you') : `User ${uid.substring(0,5)}`} {isPayer && `(${t('payer')})`}
+                            <span className={isPayer ? 'font-medium' : ''}>
+                              {displayName(uid, user?.uid, t('you'), t('me'))}
+                              {isPayer && ` (${t('payer')})`}
+                              <span className="text-gray-500 ml-1">
+                                ฿{personShare.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                              </span>
+                              {personExtra > 0 && (
+                                <span className="text-amber-600 text-xs ml-1">(+฿{personExtra.toLocaleString()})</span>
+                              )}
                             </span>
                             <div className="flex items-center space-x-2">
-                              <span className={hasPaid ? "text-green-600" : "text-orange-500"}>
+                              <span className={hasPaid ? 'text-green-600' : 'text-orange-500'}>
                                 {hasPaid ? t('settled') : t('owes')}
                               </span>
                               {!isPayer && (
-                                <Checkbox 
-                                  checked={hasPaid} 
-                                  onCheckedChange={() => togglePaidStatus(expense.id, uid, hasPaid)}
+                                <Checkbox
+                                  checked={hasPaid}
+                                  onCheckedChange={() => togglePaid(expense.id, uid, hasPaid)}
                                   disabled={!canEdit}
                                 />
                               )}

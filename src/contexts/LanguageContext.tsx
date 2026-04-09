@@ -75,7 +75,14 @@ const translations = {
     full_plan: 'Full Plan',
     day_view: 'Day View',
     edit_expense: 'Edit Expense',
-    edit_idea: 'Edit Idea'
+    edit_idea: 'Edit Idea',
+    members_tab: 'Members',
+    members_title: 'Members',
+    role_updated: 'Role updated',
+    member_removed: 'Member removed',
+    cannot_change_own_role: "You can't change your own role",
+    cannot_remove_self: "You can't remove yourself",
+    cannot_remove_owner: "You can't remove another owner"
   },
   th: {
     dashboard_title: 'E-Kae Planner',
@@ -143,7 +150,14 @@ const translations = {
     full_plan: 'แผนทั้งหมด',
     day_view: 'ดูรายวัน',
     edit_expense: 'แก้ไขค่าใช้จ่าย',
-    edit_idea: 'แก้ไขไอเดีย'
+    edit_idea: 'แก้ไขไอเดีย',
+    members_tab: 'สมาชิก',
+    members_title: 'สมาชิก',
+    role_updated: 'เปลี่ยนบทบาทแล้ว',
+    member_removed: 'ลบสมาชิกแล้ว',
+    cannot_change_own_role: 'ไม่สามารถเปลี่ยนบทบาทตัวเองได้',
+    cannot_remove_self: 'ไม่สามารถลบตัวเองได้',
+    cannot_remove_owner: 'ไม่สามารถลบเจ้าของทริปได้'
   }
 };
 

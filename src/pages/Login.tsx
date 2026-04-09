@@ -1,6 +1,6 @@
 import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -8,9 +8,11 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher';
 export function Login() {
   const { user, signIn } = useAuth();
   const { t } = useLanguage();
+  const location = useLocation();
+  const from = (location.state as any)?.from || '/';
 
   if (user) {
-    return <Navigate to="/" />;
+    return <Navigate to={from} />;
   }
 
   return (

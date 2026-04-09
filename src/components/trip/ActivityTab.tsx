@@ -21,10 +21,26 @@ export function ActivityTab({ tripId }: { tripId: string }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {activities.map((activity) => (
+            {activities.map((activity) => {
+              const actionText = activity.action.toLowerCase();
+              let iconColorClass = "text-gray-500";
+              let bgColorClass = "bg-gray-100";
+              
+              if (actionText.includes('add') || actionText.includes('join') || actionText.includes('create')) {
+                iconColorClass = "text-green-600";
+                bgColorClass = "bg-green-100";
+              } else if (actionText.includes('delet') || actionText.includes('remov')) {
+                iconColorClass = "text-red-600";
+                bgColorClass = "bg-red-100";
+              } else if (actionText.includes('updat') || actionText.includes('edit')) {
+                iconColorClass = "text-blue-600";
+                bgColorClass = "bg-blue-100";
+              }
+              
+              return (
               <div key={activity.id} className="flex items-start space-x-3 text-sm">
-                <div className="bg-gray-100 p-1.5 rounded-full mt-0.5">
-                  <History className="h-3.5 w-3.5 text-gray-500" />
+                <div className={`${bgColorClass} p-1.5 rounded-full mt-0.5`}>
+                  <History className={`h-3.5 w-3.5 ${iconColorClass}`} />
                 </div>
                 <div>
                   <p className="text-gray-900">
@@ -36,7 +52,7 @@ export function ActivityTab({ tripId }: { tripId: string }) {
                   </p>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>
