@@ -1,0 +1,135 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "photoURL": { "type": "string", "format": "uri" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "displayName", "email"]
+    },
+    "Trip": {
+      "title": "Trip",
+      "description": "A group trip being planned",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string" },
+        "members": { 
+          "type": "object",
+          "description": "Map of userId to role ('owner', 'editor', 'viewer')"
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "ownerId", "members", "createdAt", "updatedAt"]
+    },
+    "TimelineEvent": {
+      "title": "TimelineEvent",
+      "description": "An event on the trip timeline",
+      "type": "object",
+      "properties": {
+        "tripId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "location": { "type": "string" },
+        "mapLink": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tripId", "title", "startTime", "createdBy", "createdAt", "updatedAt"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "An expense to be shared among the group",
+      "type": "object",
+      "properties": {
+        "tripId": { "type": "string" },
+        "title": { "type": "string" },
+        "amount": { "type": "number" },
+        "paidBy": { "type": "string" },
+        "splitAmong": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "paidStatus": {
+          "type": "object",
+          "description": "Map of userId to boolean indicating if they have paid their share"
+        },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tripId", "title", "amount", "paidBy", "splitAmong", "paidStatus", "createdBy", "createdAt", "updatedAt"]
+    },
+    "Idea": {
+      "title": "Idea",
+      "description": "A brainstormed idea for the trip",
+      "type": "object",
+      "properties": {
+        "tripId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "link": { "type": "string" },
+        "votes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tripId", "title", "votes", "createdBy", "createdAt"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "A log of activity on a trip",
+      "type": "object",
+      "properties": {
+        "tripId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tripId", "userId", "userName", "action", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "/trips/{tripId}": {
+      "schema": { "$ref": "#/entities/Trip" },
+      "description": "Trips"
+    },
+    "/trips/{tripId}/timeline/{eventId}": {
+      "schema": { "$ref": "#/entities/TimelineEvent" },
+      "description": "Timeline events for a trip"
+    },
+    "/trips/{tripId}/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/Expense" },
+      "description": "Expenses for a trip"
+    },
+    "/trips/{tripId}/ideas/{ideaId}": {
+      "schema": { "$ref": "#/entities/Idea" },
+      "description": "Ideas for a trip"
+    },
+    "/trips/{tripId}/activity/{activityId}": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Activity log for a trip"
+    }
+  }
+}

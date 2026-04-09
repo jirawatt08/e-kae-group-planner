@@ -1,0 +1,188 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+    
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUrl(url) {
+      return url is string && (url.matches("^https://.*") || url.matches("^http://.*"));
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['uid', 'displayName', 'email', 'photoURL', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() < 100 &&
+             data.email is string && isValidEmail(data.email) &&
+             (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() < 1000)) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidTrip(data) {
+      return hasOnlyAllowedFields(['name', 'description', 'startDate', 'endDate', 'ownerId', 'members', 'createdAt', 'updatedAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             (!('description' in data) || (data.description is string && data.description.size() < 1000)) &&
+             (!('startDate' in data) || data.startDate is timestamp) &&
+             (!('endDate' in data) || data.endDate is timestamp) &&
+             data.ownerId is string && data.ownerId.size() > 0 && data.ownerId.size() < 100 &&
+             data.members is map && data.members.size() < 100 &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidTimelineEvent(data) {
+      return hasOnlyAllowedFields(['tripId', 'title', 'description', 'startTime', 'endTime', 'location', 'mapLink', 'createdBy', 'createdAt', 'updatedAt']) &&
+             data.tripId is string && data.tripId.size() > 0 && data.tripId.size() < 100 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
+             (!('description' in data) || (data.description is string && data.description.size() < 1000)) &&
+             data.startTime is timestamp &&
+             (!('endTime' in data) || data.endTime is timestamp) &&
+             (!('location' in data) || (data.location is string && data.location.size() < 200)) &&
+             (!('mapLink' in data) || (data.mapLink is string && data.mapLink.size() < 1000)) &&
+             data.createdBy is string && data.createdBy.size() > 0 && data.createdBy.size() < 100 &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidExpense(data) {
+      return hasOnlyAllowedFields(['tripId', 'title', 'amount', 'paidBy', 'splitAmong', 'paidStatus', 'createdBy', 'createdAt', 'updatedAt']) &&
+             data.tripId is string && data.tripId.size() > 0 && data.tripId.size() < 100 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
+             data.amount is number && data.amount >= 0 &&
+             data.paidBy is string && data.paidBy.size() > 0 && data.paidBy.size() < 100 &&
+             data.splitAmong is list && data.splitAmong.size() > 0 && data.splitAmong.size() < 100 &&
+             data.paidStatus is map && data.paidStatus.size() < 100 &&
+             data.createdBy is string && data.createdBy.size() > 0 && data.createdBy.size() < 100 &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp;
+    }
+
+    function isValidIdea(data) {
+      return hasOnlyAllowedFields(['tripId', 'title', 'description', 'link', 'votes', 'createdBy', 'createdAt']) &&
+             data.tripId is string && data.tripId.size() > 0 && data.tripId.size() < 100 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
+             (!('description' in data) || (data.description is string && data.description.size() < 1000)) &&
+             (!('link' in data) || (data.link is string && data.link.size() < 1000)) &&
+             data.votes is list && data.votes.size() <= 100 &&
+             data.createdBy is string && data.createdBy.size() > 0 && data.createdBy.size() < 100 &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Trip Access Helpers
+    // ===============================================================
+    
+    function isTripMember(tripId) {
+      let trip = get(/databases/$(database)/documents/trips/$(tripId));
+      return trip != null && isAuthenticated() && request.auth.uid in trip.data.members;
+    }
+
+    function isTripEditorOrOwner(tripId) {
+      let trip = get(/databases/$(database)/documents/trips/$(tripId));
+      return trip != null && isAuthenticated() && 
+             request.auth.uid in trip.data.members && 
+             (trip.data.members[request.auth.uid] == 'editor' || trip.data.members[request.auth.uid] == 'owner');
+    }
+
+    function isTripOwner(tripId) {
+      let trip = get(/databases/$(database)/documents/trips/$(tripId));
+      return trip != null && isAuthenticated() && 
+             request.auth.uid in trip.data.members && 
+             trip.data.members[request.auth.uid] == 'owner';
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can read their own profile. Others can read basic info if they need to see members.
+      // For a real app, we might want a public_users collection, but for this prototype, 
+      // we'll allow authenticated users to read user profiles to show names/avatars in the app.
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.uid == userId;
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && areImmutableFieldsUnchanged(['uid', 'createdAt']);
+    }
+
+    match /trips/{tripId} {
+      allow read: if isAuthenticated() && (request.auth.uid in resource.data.members);
+      allow create: if isAuthenticated() && isValidTrip(request.resource.data) && 
+                    request.resource.data.ownerId == request.auth.uid &&
+                    request.auth.uid in request.resource.data.members &&
+                    request.resource.data.members[request.auth.uid] == 'owner';
+      allow update: if isAuthenticated() && isValidTrip(request.resource.data) && 
+                    (
+                      // Owner can update everything
+                      (request.auth.uid in resource.data.members && resource.data.members[request.auth.uid] == 'owner') ||
+                      // Editor can update details but not ownerId or members
+                      (request.auth.uid in resource.data.members && resource.data.members[request.auth.uid] == 'editor' && areImmutableFieldsUnchanged(['ownerId', 'members', 'createdAt'])) ||
+                      // Anyone can add themselves as a viewer/editor if they have the link (for this prototype, we'll allow joining)
+                      // In a real app, we'd use an invite code system. Here we allow adding oneself to members if not already there.
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'updatedAt']) &&
+                       request.auth.uid in request.resource.data.members &&
+                       !(request.auth.uid in resource.data.members) &&
+                       areImmutableFieldsUnchanged(['ownerId', 'createdAt', 'name', 'description', 'startDate', 'endDate']))
+                    );
+      allow delete: if isAuthenticated() && request.auth.uid in resource.data.members && resource.data.members[request.auth.uid] == 'owner';
+
+      match /timeline/{eventId} {
+        allow read: if isTripMember(tripId);
+        allow create: if isTripEditorOrOwner(tripId) && isValidTimelineEvent(request.resource.data) && request.resource.data.tripId == tripId && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isTripEditorOrOwner(tripId) && isValidTimelineEvent(request.resource.data) && areImmutableFieldsUnchanged(['tripId', 'createdBy', 'createdAt']);
+        allow delete: if isTripEditorOrOwner(tripId);
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isTripMember(tripId);
+        allow create: if isTripEditorOrOwner(tripId) && isValidExpense(request.resource.data) && request.resource.data.tripId == tripId && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isTripEditorOrOwner(tripId) && isValidExpense(request.resource.data) && areImmutableFieldsUnchanged(['tripId', 'createdBy', 'createdAt']);
+        allow delete: if isTripEditorOrOwner(tripId);
+      }
+
+      match /ideas/{ideaId} {
+        allow read: if isTripMember(tripId);
+        allow create: if isTripMember(tripId) && isValidIdea(request.resource.data) && request.resource.data.tripId == tripId && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isTripMember(tripId) && isValidIdea(request.resource.data) && areImmutableFieldsUnchanged(['tripId', 'createdBy', 'createdAt']);
+        allow delete: if isTripEditorOrOwner(tripId) || (isAuthenticated() && resource.data.createdBy == request.auth.uid);
+      }
+
+      match /activity/{activityId} {
+        allow read: if isTripMember(tripId);
+        allow create: if isTripMember(tripId) && 
+                      request.resource.data.tripId == tripId && 
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.createdAt is timestamp;
+      }
+    }
+  }
+}
