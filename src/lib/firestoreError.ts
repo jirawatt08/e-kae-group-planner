@@ -28,9 +28,18 @@ export interface FirestoreErrorInfo {
   }
 }
 
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+import { toast } from 'sonner';
+
+export function handleFirestoreError(error: any, operationType: OperationType, path: string | null) {
+  const errMessage = error instanceof Error ? error.message : String(error);
+  const context = path || 'unknown';
+  console.error(`Firestore ${operationType} Error context [${context}]:`, error);
+  console.error('Details:', errMessage);
+  
+  toast.error(`Error: ${errMessage}`);
+
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errMessage,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -48,5 +57,4 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
 }
