@@ -1,12 +1,15 @@
 import React from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTripData } from '../../contexts/TripDataContext';
-import { format } from 'date-fns';
+import { safeFormat } from '../../lib/dateUtils';
+import { resolveDisplayName } from '../../lib/userUtils';
+import { useAuth } from '../../contexts/AuthContext';
 import { History } from 'lucide-react';
 
 export function ActivityTab({ tripId }: { tripId: string }) {
+  const { user } = useAuth();
   const { t } = useLanguage();
-  const { activities } = useTripData();
+  const { activities, trip, memberProfiles } = useTripData();
 
   return (
     <div className="flex flex-col h-full">
@@ -44,11 +47,11 @@ export function ActivityTab({ tripId }: { tripId: string }) {
                 </div>
                 <div>
                   <p className="text-gray-900">
-                    <span className="font-semibold">{activity.userName}</span> {activity.action.toLowerCase()}
+                    <span className="font-semibold">{resolveDisplayName(activity.userId, user?.uid, memberProfiles, t('you'))}</span> {activity.action.toLowerCase()}
                     {activity.details && <span className="text-gray-600">: {activity.details}</span>}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {activity.createdAt?.toDate ? format(activity.createdAt.toDate(), 'MMM d, h:mm a') : t('just_now')}
+                    {safeFormat(activity.createdAt, 'MMM d, h:mm a', t('just_now'))}
                   </p>
                 </div>
               </div>

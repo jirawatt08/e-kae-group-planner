@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestoreError';
 
@@ -9,6 +9,7 @@ interface TripDataContextType {
   expenses: any[];
   ideas: any[];
   activities: any[];
+  memberProfiles: Record<string, any>;
   loading: boolean;
 }
 
@@ -20,7 +21,36 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
   const [expenses, setExpenses] = useState<any[]>([]);
   const [ideas, setIdeas] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const [memberProfiles, setMemberProfiles] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+
+  // Fetch member profiles when trip members change
+  useEffect(() => {
+    if (!trip?.members) return;
+    const uids = Object.keys(trip.members);
+    
+    // We can fetch profiles individually since 'in' query is limited to 10
+    const fetchProfiles = async () => {
+      const newProfiles: Record<string, any> = {};
+      try {
+        await Promise.all(uids.map(async (uid) => {
+          // If already feched, reuse
+          if (memberProfiles[uid]) {
+            newProfiles[uid] = memberProfiles[uid];
+            return;
+          }
+          const userDoc = await getDoc(doc(db, 'users', uid));
+          if (userDoc.exists()) {
+            newProfiles[uid] = userDoc.data();
+          }
+        }));
+        setMemberProfiles(prev => ({ ...prev, ...newProfiles }));
+      } catch (error) {
+        console.error('Error fetching member profiles:', error);
+      }
+    };
+    fetchProfiles();
+  }, [trip?.members]);
 
   useEffect(() => {
     if (!tripId) return;
@@ -78,7 +108,7 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
   }, [tripId]);
 
   return (
-    <TripDataContext.Provider value={{ trip, timeline, expenses, ideas, activities, loading }}>
+    <TripDataContext.Provider value={{ trip, timeline, expenses, ideas, activities, memberProfiles, loading }}>
       {children}
     </TripDataContext.Provider>
   );

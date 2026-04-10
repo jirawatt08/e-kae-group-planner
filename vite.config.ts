@@ -15,6 +15,18 @@ export default defineConfig(({mode}) => {
         '@': path.resolve(__dirname, '.'),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'firebase-vendor': ['firebase/app', 'firebase/firestore', 'firebase/auth'],
+            'ui-vendor': ['lucide-react', 'clsx', 'tailwind-merge'],
+            'utils-vendor': ['date-fns', 'sonner'],
+          },
+        },
+      },
+      chunkSizeWarningLimit: 1000,
+    },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.

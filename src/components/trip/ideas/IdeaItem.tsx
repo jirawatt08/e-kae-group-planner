@@ -1,0 +1,86 @@
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Idea } from '../../../types';
+import { Lightbulb, Plus, Trash2, ExternalLink, ThumbsUp } from 'lucide-react';
+import { useLanguage } from '../../../contexts/LanguageContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useTripData } from '../../../contexts/TripDataContext';
+import { resolveDisplayName } from '../../../lib/userUtils';
+
+interface IdeaItemProps {
+  key?: React.Key;
+  idea: Idea;
+  canEdit: boolean;
+  currentUserId?: string;
+  onEdit: (idea: Idea) => void;
+  onDelete: (ideaId: string, createdBy: string) => void;
+  onToggleVote: (ideaId: string, currentVotes: string[]) => void;
+}
+
+export function IdeaItem({
+  idea,
+  canEdit,
+  currentUserId,
+  onEdit,
+  onDelete,
+  onToggleVote
+}: IdeaItemProps) {
+  const { user } = useAuth();
+  const { memberProfiles } = useTripData();
+  const { t } = useLanguage();
+  const hasVoted = idea.votes?.includes(currentUserId || '');
+  const canDelete = canEdit || idea.createdBy === currentUserId;
+  const createdBy = resolveDisplayName(idea.createdBy, user?.uid, memberProfiles, t('you'));
+
+  return (
+    <div className="bg-white border rounded-lg p-4 shadow-sm flex flex-col h-full">
+      <div className="flex justify-between items-start mb-2">
+        <div className="flex flex-col flex-1 cursor-pointer" onClick={() => (canEdit || idea.createdBy === currentUserId) && onEdit(idea)}>
+          <div className="flex items-center">
+            <Lightbulb className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
+            <h3 className="font-semibold text-gray-900 line-clamp-2">{idea.title}</h3>
+          </div>
+          <span className="text-[10px] text-gray-400 mt-1">
+            {t('by') || 'by'} {createdBy}
+          </span>
+        </div>
+        {canDelete && (
+          <div className="flex space-x-1 -mr-2 -mt-2">
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-primary" onClick={() => onEdit(idea)}>
+              <Plus className="h-3 w-3 rotate-45" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-red-500" onClick={() => onDelete(idea.id, idea.createdBy)}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+      </div>
+      
+      {idea.description && (
+        <p className="text-sm text-gray-600 mb-3 flex-1 line-clamp-3">{idea.description}</p>
+      )}
+      
+      {idea.link && (
+        <a href={idea.link} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline flex items-center mb-3">
+          <ExternalLink className="h-3 w-3 mr-1" />
+          {t('view_link')}
+        </a>
+      )}
+      
+      <div className="mt-auto pt-3 border-t flex justify-between items-center">
+        <span className="text-xs text-gray-500">
+          {idea.votes?.length || 0} {t('votes')}
+        </span>
+        <Button 
+          variant={hasVoted ? "default" : "outline"} 
+          size="sm" 
+          className="h-8"
+          onClick={() => onToggleVote(idea.id, idea.votes || [])}
+        >
+          <ThumbsUp className={`h-3 w-3 mr-1 ${hasVoted ? 'fill-current' : ''}`} />
+          {hasVoted ? t('voted') : t('vote')}
+        </Button>
+      </div>
+    </div>
+  );
+}

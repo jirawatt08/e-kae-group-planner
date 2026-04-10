@@ -7,8 +7,9 @@ import { db } from '../firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Share2, Users } from 'lucide-react';
+import { ArrowLeft, Share2, Users, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { tripService } from '../services/tripService';
 import { TimelineTab } from '../components/trip/TimelineTab';
 import { ExpensesTab } from '../components/trip/ExpensesTab';
 import { IdeasTab } from '../components/trip/IdeasTab';
@@ -30,23 +31,60 @@ function TripDetailContent() {
     }
   }, [loading, trip, navigate, t]);
 
-  useEffect(() => {
-    if (trip && user && !trip.members[user.uid]) {
+  const isMember = user && trip && trip.members[user.uid];
+
+  const handleJoin = async () => {
+    if (!user || !trip) return;
+    try {
       const tripRef = doc(db, 'trips', trip.id);
-      updateDoc(tripRef, {
+      await updateDoc(tripRef, {
         [`members.${user.uid}`]: 'editor',
         updatedAt: serverTimestamp()
-      }).catch(err => console.error("Error joining trip:", err));
+      });
+      toast.success(t('joined_trip') || 'Successfully joined the trip!');
+    } catch (err) {
+      console.error(err);
+      toast.error(t('join_failed') || 'Failed to join trip. Please check your permissions.');
     }
-  }, [trip, user]);
+  };
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
     toast.success(t('copied'));
   };
 
+  const handleDeleteTrip = async () => {
+    if (!window.confirm(t('confirm_delete_trip') || 'Are you absolutely sure you want to delete this trip? All data will be lost.')) return;
+    
+    try {
+      await tripService.deleteTrip(tripId!);
+      toast.success(t('trip_deleted') || 'Trip deleted successfully');
+      navigate('/');
+    } catch (err) {
+      console.error(err);
+      toast.error(t('delete_failed') || 'Failed to delete trip');
+    }
+  };
+
   if (loading || !trip) {
     return <div className="flex h-screen items-center justify-center">{t('loading_trip')}</div>;
+  }
+
+  if (user && !isMember) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-xl shadow-lg border max-w-md w-full text-center">
+            <h1 className="text-2xl font-bold mb-2 text-gray-900">{trip.name}</h1>
+            <p className="text-gray-600 mb-8">{t('invite_message') || 'You have been invited to join this trip planner!'}</p>
+            <Button className="w-full mb-4 py-6 text-lg" onClick={handleJoin}>
+                {t('join_trip') || 'Join Trip'}
+            </Button>
+            <Button variant="ghost" className="w-full text-gray-500" onClick={() => navigate('/')}>
+                {t('go_back') || 'Go Back'}
+            </Button>
+        </div>
+      </div>
+    );
   }
 
   const userRole = trip.members[user?.uid || ''];
@@ -72,6 +110,12 @@ function TripDetailContent() {
               <Share2 className="h-4 w-4 mr-2" />
               {t('share')}
             </Button>
+            {userRole === 'owner' && (
+              <Button variant="destructive" size="sm" onClick={handleDeleteTrip}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                {t('delete_trip') || 'Delete'}
+              </Button>
+            )}
           </div>
         </div>
       </header>
