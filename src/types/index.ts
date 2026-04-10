@@ -41,6 +41,7 @@ export interface TimelineEvent {
   title: string;
   description: string;
   startTime: any; // Firestore Timestamp
+  endTime?: any; // Firestore Timestamp
   location: string;
   mapLink: string;
   createdBy: string;
