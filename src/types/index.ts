@@ -58,7 +58,6 @@ export interface Idea {
   votes: string[];
   createdBy: string;
   createdAt: any;
-  updatedAt: any;
 }
 
 export interface Activity {

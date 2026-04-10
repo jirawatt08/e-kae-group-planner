@@ -21,8 +21,7 @@ export const ideaService = {
     await updateDoc(doc(db, `trips/${tripId}/ideas`, ideaId), {
       title: data.title,
       description: data.description,
-      link: data.link,
-      updatedAt: serverTimestamp()
+      link: data.link
     });
     await activityService.logActivity(tripId, 'Updated an idea', data.title);
   },
