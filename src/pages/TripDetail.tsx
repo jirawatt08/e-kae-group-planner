@@ -16,6 +16,7 @@ import { IdeasTab } from '../components/trip/IdeasTab';
 import { ActivityTab } from '../components/trip/ActivityTab';
 import { MembersTab } from '../components/trip/MembersTab';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { Lock, Link2 } from 'lucide-react';
 
 function TripDetailContent() {
   const { tripId } = useParams<{ tripId: string }>();
@@ -23,6 +24,8 @@ function TripDetailContent() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const { trip, loading } = useTripData();
+  const [inputCode, setInputCode] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
     if (!loading && !trip) {
@@ -35,6 +38,14 @@ function TripDetailContent() {
 
   const handleJoin = async () => {
     if (!user || !trip) return;
+    
+    // Validate code
+    if (inputCode.toUpperCase() !== trip.inviteCode?.toUpperCase()) {
+      toast.error(t('invalid_code'));
+      return;
+    }
+
+    setIsJoining(true);
     try {
       const tripRef = doc(db, 'trips', trip.id);
       await updateDoc(tripRef, {
@@ -45,6 +56,8 @@ function TripDetailContent() {
     } catch (err) {
       console.error(err);
       toast.error(t('join_failed') || 'Failed to join trip. Please check your permissions.');
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -72,16 +85,56 @@ function TripDetailContent() {
 
   if (user && !isMember) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg border max-w-md w-full text-center">
-            <h1 className="text-2xl font-bold mb-2 text-gray-900">{trip.name}</h1>
-            <p className="text-gray-600 mb-8">{t('invite_message') || 'You have been invited to join this trip planner!'}</p>
-            <Button className="w-full mb-4 py-6 text-lg" onClick={handleJoin}>
-                {t('join_trip') || 'Join Trip'}
-            </Button>
-            <Button variant="ghost" className="w-full text-gray-500" onClick={() => navigate('/')}>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+        <div className="max-w-md w-full">
+          <div className="bg-white p-10 rounded-2xl shadow-xl border text-center">
+            <div className="mb-8">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-6">
+                <Lock className="h-8 w-8 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold mb-2 text-gray-900 px-4">
+                {trip.name}
+              </h1>
+              <p className="text-sm text-gray-500 leading-relaxed px-4">
+                {t('invite_message') || 'You have been invited to join this trip planner. Please enter the invite code to access the trip.'}
+              </p>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest block text-left pl-1">
+                  {t('enter_code')}
+                </label>
+                <input
+                  type="text"
+                  value={inputCode}
+                  onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+                  placeholder="------"
+                  className="w-full text-center text-4xl tracking-[0.4em] font-mono h-20 bg-gray-50 border rounded-xl text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                  maxLength={6}
+                  autoFocus
+                />
+              </div>
+
+              <div className="pt-2">
+                <Button 
+                  className="w-full py-8 text-lg font-bold"
+                  onClick={handleJoin} 
+                  disabled={isJoining || inputCode.length < 6}
+                >
+                  {isJoining ? t('loading') : t('join_trip')}
+                </Button>
+              </div>
+
+              <Button 
+                variant="ghost" 
+                className="w-full text-gray-400 font-medium text-sm"
+                onClick={() => navigate('/')}
+              >
                 {t('go_back') || 'Go Back'}
-            </Button>
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );

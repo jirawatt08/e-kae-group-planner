@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { tripService } from '../services/tripService';
 import { handleFirestoreError, OperationType } from '../lib/firestoreError';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,15 +11,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, LogOut } from 'lucide-react';
+import { Plus, LogOut, Link2 } from 'lucide-react';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { toast } from 'sonner';
 
 export function Dashboard() {
   const { user, signOut } = useAuth();
   const { t } = useLanguage();
   const [trips, setTrips] = useState<any[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [newTripName, setNewTripName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,6 +67,40 @@ export function Dashboard() {
     }
   };
 
+  const handleJoinTrip = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !joinCode.trim() || isJoining) return;
+
+    setIsJoining(true);
+    try {
+      const trip = await tripService.getTripByCode(joinCode.trim());
+      if (!trip) {
+        toast.error(t('invalid_code'));
+        setIsJoining(false);
+        return;
+      }
+
+      // Check if already a member
+      if (trip.members[user.uid]) {
+        navigate(`/trip/${trip.id}`);
+        setIsJoinOpen(false);
+        setJoinCode('');
+        return;
+      }
+
+      await tripService.joinTripAsEditor(trip.id, user.uid);
+      toast.success(t('join_success'));
+      setIsJoinOpen(false);
+      setJoinCode('');
+      navigate(`/trip/${trip.id}`);
+    } catch (error) {
+      console.error(error);
+      toast.error(t('join_failed'));
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b sticky top-0 z-10">
@@ -102,6 +141,40 @@ export function Dashboard() {
                 </div>
                 <div className="flex justify-end">
                   <Button type="submit">{t('create_trip')}</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isJoinOpen} onOpenChange={setIsJoinOpen}>
+            <DialogTrigger render={<Button variant="outline" />}>
+              <Link2 className="h-4 w-4 mr-2" />
+              {t('join_trip')}
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>{t('join_trip')}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleJoinTrip} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="code">{t('enter_code')}</Label>
+                  <Input
+                    id="code"
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                    placeholder="E.g. ABC123"
+                    className="text-center text-2xl tracking-[0.2em] font-mono h-14"
+                    maxLength={6}
+                    required
+                  />
+                  <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest mt-2 font-mono">
+                    {t('auth_required') || 'Authentication Required'}
+                  </p>
+                </div>
+                <div className="flex justify-end">
+                  <Button type="submit" disabled={isJoining} className="w-full">
+                    {isJoining ? t('loading') : t('join_trip')}
+                  </Button>
                 </div>
               </form>
             </DialogContent>

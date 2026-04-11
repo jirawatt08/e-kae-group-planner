@@ -5,17 +5,20 @@ import { useTripData } from '../../contexts/TripDataContext';
 import { useMembers } from '../../hooks/useMembers';
 import { Role } from '../../types';
 import { Button } from '@/components/ui/button';
-import { Shield, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { tripService } from '../../services/tripService';
 import { useNavigate } from 'react-router-dom';
 import { MemberItem } from './members/MemberItem';
+import { Copy, RefreshCw, Shield, Trash2, Link2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export function MembersTab({ tripId, tripMembers }: { tripId: string; tripMembers: Record<string, string> }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { t, language } = useLanguage();
-  const { memberProfiles } = useTripData();
+  const { memberProfiles, trip } = useTripData();
+
+  const inviteCode = trip?.inviteCode || '';
 
   const currentUserRole = tripMembers[user?.uid || ''];
   const isOwner = currentUserRole === 'owner';
@@ -61,6 +64,61 @@ export function MembersTab({ tripId, tripMembers }: { tripId: string; tripMember
     }
   };
 
+  const handleCopyCode = () => {
+    if (!inviteCode) return;
+    navigator.clipboard.writeText(inviteCode);
+    toast.success(t('copied') || 'Copied to clipboard');
+  };
+
+  const getCooldownRemaining = () => {
+    if (!trip?.lastCodeGeneratedAt) return 0;
+    const lastGen = trip.lastCodeGeneratedAt.toDate().getTime();
+    const now = Date.now();
+    const fiveMinutes = 5 * 60 * 1000;
+    const remaining = fiveMinutes - (now - lastGen);
+    return remaining > 0 ? remaining : 0;
+  };
+
+  const [cooldownTime, setCooldownTime] = React.useState(getCooldownRemaining());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCooldownTime(getCooldownRemaining());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [trip?.lastCodeGeneratedAt]);
+
+  const handleRefreshCode = async () => {
+    if (cooldownTime > 0) return;
+    if (!window.confirm(t('confirm_refresh_code') || "Are you sure you want to refresh the invite code?")) return;
+    try {
+      await tripService.refreshInviteCode(tripId);
+      toast.success(t('update_success') || 'Invite code refreshed');
+    } catch (err) {
+      console.error(err);
+      toast.error(t('update_failed') || 'Failed to refresh code');
+    }
+  };
+
+  const handleToggleJoin = async (checked: boolean) => {
+    try {
+      await tripService.toggleJoinCode(tripId, checked);
+      toast.success(t('update_success') || 'Settings updated');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(`${t('update_failed') || 'Failed to update settings'}: ${err.message || ''}`);
+    }
+  };
+
+  const formatCooldown = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return t('cooldown_wait')
+      .replace('{{minutes}}', minutes.toString())
+      .replace('{{seconds}}', seconds.toString());
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-start mb-6 pb-4 border-b">
@@ -78,6 +136,71 @@ export function MembersTab({ tripId, tripMembers }: { tripId: string; tripMember
             <Trash2 className="h-4 w-4" />
             {t('delete_trip') || 'Delete Entire Trip'}
           </Button>
+        )}
+      </div>
+
+      <div className="bg-white border rounded-xl p-6 mb-8 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/10 p-2 rounded-lg">
+              <Link2 className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900">{t('invite_code')}</h3>
+              <p className="text-xs text-gray-500">{t('share_code_desc') || 'Allow others to join using a code'}</p>
+            </div>
+          </div>
+          {isOwner && (
+            <div className="flex items-center gap-2">
+              <Checkbox 
+                id="join-toggle" 
+                checked={trip?.isJoinEnabled ?? false} 
+                onCheckedChange={(checked) => handleToggleJoin(checked as boolean)}
+              />
+              <label htmlFor="join-toggle" className="text-sm font-medium cursor-pointer">
+                {t('enable_join_code')}
+              </label>
+            </div>
+          )}
+        </div>
+
+        {trip?.isJoinEnabled ? (
+          <div className="flex items-center gap-4">
+            <div className="bg-gray-50 border rounded-lg px-6 py-3 flex-1 text-center">
+              <span className="text-3xl font-mono font-bold tracking-[0.3em] text-gray-900">
+                {inviteCode}
+              </span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button variant="outline" onClick={handleCopyCode} className="h-full">
+                <Copy className="h-4 w-4 mr-2" />
+                {t('copy_code')}
+              </Button>
+              {isOwner && (
+                <div className="relative group">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleRefreshCode} 
+                    disabled={cooldownTime > 0}
+                    className="w-full text-xs text-gray-500 hover:text-primary"
+                  >
+                    <RefreshCw className={`h-3 w-3 mr-1 ${cooldownTime > 0 ? '' : 'group-hover:rotate-180 transition-transform'}`} />
+                    {t('refresh_code')}
+                  </Button>
+                  {cooldownTime > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-gray-900 text-white text-[10px] rounded shadow-lg z-10 whitespace-nowrap text-center">
+                      {formatCooldown(cooldownTime)}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-gray-50 border border-dashed rounded-lg p-6 text-center text-gray-400">
+            <p className="text-sm italic">{t('join_code_disabled')}</p>
+          </div>
         )}
       </div>
 

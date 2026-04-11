@@ -12,6 +12,9 @@ export interface Trip {
   name: string;
   description: string;
   ownerId: string;
+  inviteCode: string;
+  isJoinEnabled: boolean;
+  lastCodeGeneratedAt: any; // Firestore Timestamp
   members: Record<string, Role>;
   createdAt: any; // Firestore Timestamp
   updatedAt: any;

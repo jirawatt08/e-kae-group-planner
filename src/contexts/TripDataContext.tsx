@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useAuth } from './AuthContext';
+import { tripService } from '../services/tripService';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestoreError';
 
@@ -23,6 +25,8 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
   const [activities, setActivities] = useState<any[]>([]);
   const [memberProfiles, setMemberProfiles] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const migrationAttempted = useRef<string | null>(null);
 
   // Fetch member profiles when trip members change
   useEffect(() => {
@@ -59,12 +63,23 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
     const tripRef = doc(db, 'trips', tripId);
     const unsubTrip = onSnapshot(tripRef, (docSnap) => {
       if (docSnap.exists()) {
-        setTrip({ id: docSnap.id, ...docSnap.data() });
+        const data = docSnap.data();
+        setTrip({ id: docSnap.id, ...data });
       }
       setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `trips/${tripId}`);
     });
+
+    // Sub-collections Listener (Only if member)
+    const isMember = trip?.members?.[user?.uid];
+    if (!isMember) {
+      setTimeline([]);
+      setExpenses([]);
+      setIdeas([]);
+      setActivities([]);
+      return () => unsubTrip();
+    }
 
     // 2. Timeline Listener
     const timelineQ = query(collection(db, `trips/${tripId}/timeline`), orderBy('startTime', 'asc'));
@@ -75,24 +90,21 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
     });
 
     // 3. Expenses Listener
-    const expensesQ = query(collection(db, `trips/${tripId}/expenses`), orderBy('createdAt', 'desc'));
-    const unsubExpenses = onSnapshot(expensesQ, (snapshot) => {
+    const unsubExpenses = onSnapshot(query(collection(db, `trips/${tripId}/expenses`), orderBy('createdAt', 'desc')), (snapshot) => {
       setExpenses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, `trips/${tripId}/expenses`);
     });
 
     // 4. Ideas Listener
-    const ideasQ = query(collection(db, `trips/${tripId}/ideas`), orderBy('createdAt', 'desc'));
-    const unsubIdeas = onSnapshot(ideasQ, (snapshot) => {
+    const unsubIdeas = onSnapshot(query(collection(db, `trips/${tripId}/ideas`), orderBy('createdAt', 'desc')), (snapshot) => {
       setIdeas(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, `trips/${tripId}/ideas`);
     });
 
     // 5. Activities Listener
-    const activitiesQ = query(collection(db, `trips/${tripId}/activity`), orderBy('createdAt', 'desc'));
-    const unsubActivities = onSnapshot(activitiesQ, (snapshot) => {
+    const unsubActivities = onSnapshot(query(collection(db, `trips/${tripId}/activity`), orderBy('createdAt', 'desc')), (snapshot) => {
       setActivities(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, `trips/${tripId}/activity`);
@@ -105,7 +117,7 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
       unsubIdeas();
       unsubActivities();
     };
-  }, [tripId]);
+  }, [tripId, user, !!trip?.members?.[user?.uid]]);
 
   return (
     <TripDataContext.Provider value={{ trip, timeline, expenses, ideas, activities, memberProfiles, loading }}>

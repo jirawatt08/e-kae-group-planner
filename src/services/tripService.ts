@@ -1,7 +1,16 @@
-import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteField, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteField, deleteDoc, query, where, getDocs, limit, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { activityService } from './activityService';
-import { Role } from '../types';
+import { Role, Trip } from '../types';
+
+const generateInviteCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Avoid confusing chars like 0, O, 1, I, l
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
 
 export const tripService = {
   createTrip: async (userId: string, name: string) => {
@@ -9,6 +18,9 @@ export const tripService = {
       name,
       description: '',
       ownerId: userId,
+      inviteCode: generateInviteCode(),
+      isJoinEnabled: true,
+      lastCodeGeneratedAt: serverTimestamp(),
       members: {
         [userId]: 'owner'
       },
@@ -46,5 +58,50 @@ export const tripService = {
 
   deleteTrip: async (tripId: string) => {
     await deleteDoc(doc(db, 'trips', tripId));
+  },
+
+  getTripByCode: async (code: string): Promise<Trip | null> => {
+    const q = query(
+      collection(db, 'trips'),
+      where('inviteCode', '==', code.toUpperCase()),
+      where('isJoinEnabled', '==', true),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return null;
+    const doc = snapshot.docs[0];
+    return { id: doc.id, ...doc.data() } as Trip;
+  },
+
+  refreshInviteCode: async (tripId: string) => {
+    const tripRef = doc(db, 'trips', tripId);
+    const newCode = generateInviteCode();
+    await updateDoc(tripRef, {
+      inviteCode: newCode,
+      lastCodeGeneratedAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return newCode;
+  },
+
+  toggleJoinCode: async (tripId: string, enabled: boolean) => {
+    const tripRef = doc(db, 'trips', tripId);
+    const updates: any = {
+      isJoinEnabled: enabled,
+      updatedAt: serverTimestamp()
+    };
+    
+    // If enabling and no code exists, generate one
+    const tripSnap = await getDoc(tripRef);
+    if (tripSnap.exists()) {
+      const tripData = tripSnap.data();
+      if (enabled && !tripData.inviteCode) {
+        updates.inviteCode = generateInviteCode();
+        updates.lastCodeGeneratedAt = serverTimestamp();
+      }
+    }
+
+    await updateDoc(tripRef, updates);
+    await activityService.logActivity(tripId, 'Security Update', `Join by code ${enabled ? 'ENABLED' : 'DISABLED'}`);
   }
 };
