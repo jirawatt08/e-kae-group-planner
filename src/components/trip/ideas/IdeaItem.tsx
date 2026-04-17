@@ -5,7 +5,7 @@ import { Lightbulb, Plus, Trash2, ExternalLink, ThumbsUp } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTripData } from '../../../contexts/TripDataContext';
-import { resolveDisplayName } from '../../../lib/userUtils';
+import { resolveDisplayName, getUserColorStyles } from '../../../lib/userUtils';
 
 interface IdeaItemProps {
   key?: React.Key;
@@ -30,6 +30,7 @@ export function IdeaItem({
   const { t } = useLanguage();
   const hasVoted = idea.votes?.includes(currentUserId || '');
   const canDelete = canEdit || idea.createdBy === currentUserId;
+  const userStyles = getUserColorStyles(idea.createdBy);
   const createdBy = resolveDisplayName(idea.createdBy, user?.uid, memberProfiles, t('you'));
 
   return (
@@ -40,7 +41,10 @@ export function IdeaItem({
             <Lightbulb className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
             <h3 className="font-semibold text-gray-900 line-clamp-2">{idea.title}</h3>
           </div>
-          <span className="text-[10px] text-gray-400 mt-1">
+          <span 
+            className="text-[10px] font-semibold mt-1 px-1.5 py-0.5 rounded border transition-colors self-start"
+            style={userStyles.badge}
+          >
             {t('by') || 'by'} {createdBy}
           </span>
         </div>

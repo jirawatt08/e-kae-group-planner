@@ -2,7 +2,7 @@ import React from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTripData } from '../../contexts/TripDataContext';
 import { safeFormat } from '../../lib/dateUtils';
-import { resolveDisplayName } from '../../lib/userUtils';
+import { resolveDisplayName, getUserColorStyles } from '../../lib/userUtils';
 import { useAuth } from '../../contexts/AuthContext';
 import { History } from 'lucide-react';
 
@@ -47,7 +47,12 @@ export function ActivityTab({ tripId }: { tripId: string }) {
                 </div>
                 <div>
                   <p className="text-gray-900">
-                    <span className="font-semibold">{resolveDisplayName(activity.userId, user?.uid, memberProfiles, t('you'))}</span> {activity.action.toLowerCase()}
+                    <span 
+                      className="font-semibold" 
+                      style={getUserColorStyles(activity.userId).text}
+                    >
+                      {resolveDisplayName(activity.userId, user?.uid, memberProfiles, t('you'))}
+                    </span> {activity.action.toLowerCase()}
                     {activity.details && <span className="text-gray-600">: {activity.details}</span>}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">

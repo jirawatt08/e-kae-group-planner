@@ -4,6 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Receipt, Plus, Trash2, UserPlus } from 'lucide-react';
 import { Expense, ExtraDetail } from '../../../types';
 import { useLanguage } from '../../../contexts/LanguageContext';
+import { getUserColorStyles } from '../../../lib/userUtils';
 
 interface ExpenseItemProps {
   key?: React.Key;
@@ -61,8 +62,14 @@ export function ExpenseItem({
   };
 
   const payerNames = Object.entries(paidByMap)
-    .map(([uid, amt]) => `${getPersonName(uid)} ฿${(amt as number).toLocaleString()}`)
-    .join(', ');
+    .map(([uid, amt]) => {
+      const styles = getUserColorStyles(uid);
+      return (
+        <span key={uid} style={styles.text}>
+          {getPersonName(uid)} ฿{(amt as number).toLocaleString()}
+        </span>
+      );
+    });
 
   return (
     <div className="bg-white border rounded-lg p-4 shadow-sm">
@@ -73,7 +80,13 @@ export function ExpenseItem({
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">{expense.title}</h3>
-            <p className="text-sm text-gray-500">{t('paid_by')} {payerNames} • ฿{expense.amount.toLocaleString()}</p>
+            <div className="text-sm text-gray-500 flex flex-wrap items-center gap-1">
+              <span>{t('paid_by')}</span> 
+              <div className="flex flex-wrap gap-1">
+                {payerNames}
+              </div>
+              <span>• ฿{expense.amount.toLocaleString()}</span>
+            </div>
           </div>
         </div>
         {canEdit && (
@@ -128,7 +141,7 @@ export function ExpenseItem({
             return (
               <div key={uid} className="flex items-center justify-between text-sm">
                 <span className={isPayer ? 'font-medium' : ''}>
-                  {getPersonName(uid)}
+                  <span style={getUserColorStyles(uid).text}>{getPersonName(uid)}</span>
                   {isPayer && ` (${t('payer')})`}
                   <span className="text-gray-500 ml-1">
                     ฿{personShare.toLocaleString(undefined, { maximumFractionDigits: 2 })}

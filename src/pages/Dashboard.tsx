@@ -191,11 +191,20 @@ export function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trips.map((trip) => (
               <Link key={trip.id} to={`/trip/${trip.id}`}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full relative overflow-hidden group">
                   <CardHeader>
-                    <CardTitle>{trip.name}</CardTitle>
+                    <div className="flex justify-between items-start mb-2">
+                      <CardTitle className="leading-tight">{trip.name}</CardTitle>
+                      <div className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter border transition-colors ${
+                        trip.ownerId === user?.uid 
+                          ? 'bg-blue-50 text-blue-600 border-blue-100 group-hover:bg-blue-100' 
+                          : 'bg-emerald-50 text-emerald-600 border-emerald-100 group-hover:bg-emerald-100'
+                      }`}>
+                        {trip.ownerId === user?.uid ? t('created') : t('joined')}
+                      </div>
+                    </div>
                     <CardDescription>
-                      {Object.keys(trip.members).length} {t('members')}
+                      {Object.keys(trip.members || {}).length} {t('members')}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

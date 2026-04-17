@@ -43,3 +43,42 @@ export function getRoleLabel(role: Role, language: string): string {
 export function isTripOwner(uid: string, ownerId: string): boolean {
   return uid === ownerId;
 }
+
+/**
+ * Generates a stable, pleasing HSL color from a user ID.
+ */
+export function getUserColor(uid: string): string {
+  if (!uid) return 'hsl(0, 0%, 50%)';
+  
+  // Hash function
+  let hash = 0;
+  for (let i = 0; i < uid.length; i++) {
+    hash = uid.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  // Hue 0-360
+  const hue = Math.abs(hash % 360);
+  // Saturation 65% for vibrance
+  const saturation = 65;
+  // Lightness 45% for readability on white/dark
+  const lightness = 45;
+  
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+}
+
+/**
+ * Returns style objects for a user's unique color.
+ */
+export function getUserColorStyles(uid: string) {
+  const color = getUserColor(uid);
+  return {
+    text: { color },
+    bg: { backgroundColor: color },
+    border: { borderColor: color },
+    badge: {
+      backgroundColor: `${color.replace('hsl', 'hsla').replace('%)', ', 0.1%)')}`,
+      color: color,
+      borderColor: `${color.replace('hsl', 'hsla').replace('%)', ', 0.2%)')}`,
+    }
+  };
+}

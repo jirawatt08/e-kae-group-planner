@@ -111,6 +111,8 @@ export const translations = {
     code_expired: "This invite code has expired.",
     ask_new_code: "Ask the trip owner to refresh the code.",
     copy_link: "Copy Link",
+    created: "Created",
+    joined: "Joined",
   },
   th: {
     dashboard_title: 'E-Kae Planner',
@@ -224,5 +226,7 @@ export const translations = {
     code_expired: "รหัสคำเชิญนี้หมดอายุแล้ว",
     ask_new_code: "ขอให้เจ้าของทริปสร้างรหัสใหม่",
     copy_link: "คัดลอกลิงก์",
+    created: "สร้างแล้ว",
+    joined: "เข้าร่วมแล้ว",
   }
 };

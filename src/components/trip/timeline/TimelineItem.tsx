@@ -5,7 +5,7 @@ import { TimelineEvent, ChecklistItem } from '../../../types';
 import { MapPin, ExternalLink, Trash2, Clock, Edit3, ClipboardCheck } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { safeFormat, toDate } from '../../../lib/dateUtils';
-import { resolveDisplayName } from '../../../lib/userUtils';
+import { resolveDisplayName, getUserColorStyles } from '../../../lib/userUtils';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTripData } from '../../../contexts/TripDataContext';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -34,6 +34,7 @@ export function TimelineItem({
   const { t } = useLanguage();
   const eventDate = toDate(event.startTime);
   const isPast = eventDate ? eventDate < new Date() : false;
+  const userStyles = getUserColorStyles(event.createdBy);
   const createdByName = resolveDisplayName(event.createdBy, user?.uid, memberProfiles, t('you'));
   const checklist = event.checklist || [];
 
@@ -56,14 +57,20 @@ export function TimelineItem({
   return (
     <div className={`relative pl-6 md:pl-8 ${isPast ? 'opacity-75' : ''}`}>
       {/* Timeline dot */}
-      <div className={`absolute w-4 h-4 rounded-full -left-[9px] top-1.5 border-4 border-white shadow-sm ${isPast ? 'bg-gray-300' : 'bg-primary'}`} />
+      <div 
+        className={`absolute w-4 h-4 rounded-full -left-[9px] top-1.5 border-4 border-white shadow-sm transition-colors ${isPast ? 'opacity-50' : ''}`} 
+        style={userStyles.bg} 
+      />
 
       <div className="bg-white border rounded-lg p-4 shadow-sm group hover:shadow-md transition-shadow">
         <div className="flex justify-between items-start">
           <div className="flex-1 cursor-pointer" onClick={() => onEdit(event)}>
             <div className="flex justify-between items-start">
               <h3 className="font-semibold text-lg text-gray-900">{event.title}</h3>
-              <span className="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border">
+              <span 
+                className="text-[10px] font-semibold px-1.5 py-0.5 rounded border transition-colors"
+                style={userStyles.badge}
+              >
                 {t('by') || 'by'} {createdByName}
               </span>
             </div>

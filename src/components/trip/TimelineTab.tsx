@@ -9,9 +9,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, MapPin, Clock, Trash2 } from 'lucide-react';
-import { toDate, safeFormat } from '../../lib/dateUtils';
+import { toDate, safeFormat, getDayNumber, getDayColor } from '../../lib/dateUtils';
 import { TimelineForm } from './timeline/TimelineForm';
 import { TimelineItem } from './timeline/TimelineItem';
+import { DayHeader } from './timeline/DayHeader';
 
 export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: boolean }) {
   const { user } = useAuth();
@@ -40,14 +41,21 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
     }
   }, [events, selectedDay]);
 
+  const firstEventDate = events.length > 0 ? events[0].startTime : null;
+
   // Group events by day
   const days = Array.from(new Set(events.map(event => 
     safeFormat(event.startTime, 'yyyy-MM-dd')
   ).filter(Boolean))) as string[];
 
-  const filteredEvents = viewMode === 'full' 
-    ? events 
-    : events.filter(event => safeFormat(event.startTime, 'yyyy-MM-dd') === selectedDay);
+  // Grouped structure for Full Mode
+  const groupedEvents = days.map(dayKey => ({
+    dayKey,
+    dayNumber: getDayNumber(dayKey, firstEventDate),
+    events: events.filter(e => safeFormat(e.startTime, 'yyyy-MM-dd') === dayKey)
+  }));
+
+  const filteredEventsForDay = events.filter(event => safeFormat(event.startTime, 'yyyy-MM-dd') === selectedDay);
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,19 +149,24 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
 
       {viewMode === 'day' && days.length > 0 && (
         <div className="flex overflow-x-auto pb-4 mb-4 gap-2 no-scrollbar">
-          {days.map(day => (
-            <button
-              key={day}
-              onClick={() => setSelectedDay(day)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm transition-all border ${
-                selectedDay === day 
-                  ? 'bg-primary text-primary-foreground border-primary' 
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-primary'
-              }`}
-            >
-              {safeFormat(day, 'EEE, MMM d')}
-            </button>
-          ))}
+          {days.map(day => {
+            const isSelected = selectedDay === day;
+            const color = getDayColor(day);
+            return (
+              <button
+                key={day}
+                onClick={() => setSelectedDay(day)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all border ${
+                  isSelected 
+                    ? 'text-white border-transparent' 
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                }`}
+                style={isSelected ? { backgroundColor: color } : {}}
+              >
+                {safeFormat(day, 'EEE, MMM d')}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -174,14 +187,39 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
         </DialogContent>
       </Dialog>
 
-      <div className="flex-1 overflow-y-auto pr-2">
-        {filteredEvents.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+      <div className="flex-1 overflow-y-auto -mx-1 px-1">
+        {events.length === 0 ? (
+          <div className="text-center py-12 text-gray-500 bg-gray-50/50 rounded-lg border border-dashed">
             {t('no_events')}
           </div>
+        ) : viewMode === 'full' ? (
+          <div className="space-y-12 pb-8">
+            {groupedEvents.map((group) => (
+              <div key={group.dayKey} className="relative">
+                <DayHeader 
+                  dayKey={group.dayKey} 
+                  dayNumber={group.dayNumber} 
+                  eventCount={group.events.length} 
+                />
+                <div className="relative border-l-2 border-dashed border-gray-200 ml-3 md:ml-6 space-y-8 mt-4">
+                  {group.events.map((event) => (
+                    <TimelineItem
+                      key={event.id}
+                      event={event as TimelineEvent}
+                      tripId={tripId}
+                      canEdit={canEdit}
+                      onEdit={openEditDialog}
+                      onDelete={handleDelete}
+                      isDayView={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
-          <div className="relative border-l-2 border-gray-200 ml-3 md:ml-6 space-y-8 pb-8">
-            {filteredEvents.map((event) => (
+          <div className="relative border-l-2 border-dashed border-gray-200 ml-3 md:ml-6 space-y-8 pb-8 mt-4">
+            {filteredEventsForDay.map((event) => (
               <TimelineItem
                 key={event.id}
                 event={event as TimelineEvent}
@@ -189,9 +227,14 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
                 canEdit={canEdit}
                 onEdit={openEditDialog}
                 onDelete={handleDelete}
-                isDayView={viewMode === 'day'}
+                isDayView={true}
               />
             ))}
+            {filteredEventsForDay.length === 0 && (
+              <div className="text-center py-12 text-gray-500">
+                {t('no_events_on_day') || 'No events planned for this day.'}
+              </div>
+            )}
           </div>
         )}
       </div>
