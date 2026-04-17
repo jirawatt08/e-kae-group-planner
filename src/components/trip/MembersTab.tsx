@@ -79,11 +79,22 @@ export function MembersTab({ tripId, tripMembers }: { tripId: string; tripMember
     return remaining > 0 ? remaining : 0;
   };
 
+  const getExpiryRemaining = () => {
+    if (!trip?.lastCodeGeneratedAt) return 0;
+    const lastGen = trip.lastCodeGeneratedAt.toDate().getTime();
+    const now = Date.now();
+    const thirtyMinutes = 30 * 60 * 1000;
+    const remaining = thirtyMinutes - (now - lastGen);
+    return remaining > 0 ? remaining : 0;
+  };
+
   const [cooldownTime, setCooldownTime] = React.useState(getCooldownRemaining());
+  const [expiryTime, setExpiryTime] = React.useState(getExpiryRemaining());
 
   React.useEffect(() => {
     const timer = setInterval(() => {
       setCooldownTime(getCooldownRemaining());
+      setExpiryTime(getExpiryRemaining());
     }, 1000);
     return () => clearInterval(timer);
   }, [trip?.lastCodeGeneratedAt]);
@@ -166,10 +177,17 @@ export function MembersTab({ tripId, tripMembers }: { tripId: string; tripMember
 
         {trip?.isJoinEnabled ? (
           <div className="flex items-center gap-4">
-            <div className="bg-gray-50 border rounded-lg px-6 py-3 flex-1 text-center">
-              <span className="text-3xl font-mono font-bold tracking-[0.3em] text-gray-900">
+            <div className={`border rounded-lg px-6 py-3 flex-1 text-center relative overflow-hidden ${expiryTime > 0 ? 'bg-gray-50' : 'bg-red-50 border-red-200'}`}>
+              <span className={`text-3xl font-mono font-bold tracking-[0.3em] ${expiryTime > 0 ? 'text-gray-900' : 'text-red-400 decoration-red-400 line-through opacity-50'}`}>
                 {inviteCode}
               </span>
+              {expiryTime <= 0 && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm rotate-12">
+                    {t('expired') || 'EXPIRED'}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex flex-col gap-2">
               <Button variant="outline" onClick={handleCopyCode} className="h-full">
@@ -191,6 +209,12 @@ export function MembersTab({ tripId, tripMembers }: { tripId: string; tripMember
                   {cooldownTime > 0 && (
                     <div className="absolute top-full left-0 right-0 mt-2 p-2 bg-gray-900 text-white text-[10px] rounded shadow-lg z-10 whitespace-nowrap text-center">
                       {formatCooldown(cooldownTime)}
+                    </div>
+                  )}
+                  {expiryTime > 0 && (
+                    <div className="mt-1 text-[10px] text-gray-400 flex items-center justify-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                      {Math.ceil(expiryTime / 60000)}m {t('left') || 'left'}
                     </div>
                   )}
                 </div>

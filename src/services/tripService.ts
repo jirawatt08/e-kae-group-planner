@@ -70,7 +70,19 @@ export const tripService = {
     const snapshot = await getDocs(q);
     if (snapshot.empty) return null;
     const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() } as Trip;
+    const tripData = doc.data() as Trip;
+
+    // Check expiration (30 minutes)
+    if (tripData.lastCodeGeneratedAt) {
+      const generatedAt = (tripData.lastCodeGeneratedAt as any).toDate().getTime();
+      const now = Date.now();
+      const thirtyMinutes = 30 * 60 * 1000;
+      if (now - generatedAt > thirtyMinutes) {
+        return null; // Code has expired
+      }
+    }
+
+    return { id: doc.id, ...tripData };
   },
 
   refreshInviteCode: async (tripId: string) => {

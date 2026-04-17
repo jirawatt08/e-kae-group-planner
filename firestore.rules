@@ -10,29 +10,38 @@ service cloud.firestore {
     function isAuthenticated() {
       return request.auth != null;
     }
+    function getTripData(tripId) {
+      let trip = get(/databases/$(database)/documents/trips/$(tripId));
+      return trip != null ? trip.data : null;
+    }
+
     function getRole(tripId) {
-      return get(/databases/$(database)/documents/trips/$(tripId)).data.members[request.auth.uid];
+      let data = getTripData(tripId);
+      return data != null ? data.get('members', {}).get(request.auth.uid, null) : null;
     }
 
     function isOwner(tripId) {
+      let data = getTripData(tripId);
       return isAuthenticated() && (
-        (resource != null && resource.data.ownerId == request.auth.uid) ||
+        (data != null && data.get('ownerId', null) == request.auth.uid) ||
         getRole(tripId) == 'owner'
       );
     }
     
     function canEdit(tripId) {
+      let data = getTripData(tripId);
       let role = getRole(tripId);
       return isAuthenticated() && (
-        (resource != null && resource.data.ownerId == request.auth.uid) ||
+        (data != null && data.get('ownerId', null) == request.auth.uid) ||
         (role == 'owner' || role == 'editor')
       );
     }
     
     function canView(tripId) {
+      let data = getTripData(tripId);
       let role = getRole(tripId);
       return isAuthenticated() && (
-        (resource != null && resource.data.ownerId == request.auth.uid) ||
+        (data != null && data.get('ownerId', null) == request.auth.uid) ||
         (role != null)
       );
     }
@@ -126,7 +135,8 @@ service cloud.firestore {
       allow update: if (isOwner(tripId)) ||  // Owners can update everything
                     (canEdit(tripId) && isUnchanged(['ownerId', 'members', 'createdAt'])) || // Editors can't touch owner/members
                     (isAuthenticated() && resource.data.isJoinEnabled == true && // Join flow
-                     request.resource.data.members[request.auth.uid] == 'editor' &&
+                     request.time < resource.data.get('lastCodeGeneratedAt', timestamp.date(1970, 1, 1)) + duration.value(30, 'm') &&
+                     request.resource.data.members.get(request.auth.uid, '') == 'editor' &&
                      isUnchanged(['name', 'ownerId', 'inviteCode', 'isJoinEnabled', 'createdAt']));
       
       allow delete: if isOwner(tripId);
