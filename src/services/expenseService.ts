@@ -13,6 +13,8 @@ export const expenseService = {
       paidByMap: Record<string, number>; 
       splitAmong: string[]; 
       extras: Record<string, number>; 
+      extraDetails?: { id: string; label: string; amount: number; forPerson: string }[];
+      guestNames?: string[];
       paidStatus: Record<string, boolean>; 
     }
   ) => {
@@ -32,6 +34,8 @@ export const expenseService = {
       paidByMap,
       splitAmong,
       extras,
+      extraDetails: data.extraDetails || [],
+      guestNames: data.guestNames || [],
       splitMode,
       exactSplits: {},
       paidStatus,
@@ -40,7 +44,8 @@ export const expenseService = {
       updatedAt: serverTimestamp(),
     });
 
-    await activityService.logActivity(tripId, 'Added expense', `${title} (฿${amount})`);
+    // Log activity but don't await/fail if it blocks main flow
+    activityService.logActivity(tripId, 'Added expense', `${title} (฿${amount})`).catch(e => console.error(e));
     return docRef;
   },
 
@@ -54,6 +59,8 @@ export const expenseService = {
       paidByMap: Record<string, number>;
       splitAmong: string[];
       extras: Record<string, number>;
+      extraDetails?: { id: string; label: string; amount: number; forPerson: string }[];
+      guestNames?: string[];
       paidStatus: Record<string, boolean>;
     }
   ) => {
@@ -69,6 +76,8 @@ export const expenseService = {
       paidByMap,
       splitAmong,
       extras,
+      extraDetails: data.extraDetails || [],
+      guestNames: data.guestNames || [],
       splitMode,
       exactSplits: {},
       paidStatus,
@@ -81,12 +90,13 @@ export const expenseService = {
     }
 
     await updateDoc(doc(db, `trips/${tripId}/expenses`, expenseId), updateData);
-    await activityService.logActivity(tripId, 'Updated expense', `${title} (฿${amount})`);
+    // Non-blocking log
+    activityService.logActivity(tripId, 'Updated expense', `${title} (฿${amount})`).catch(e => console.error(e));
   },
 
   deleteExpense: async (tripId: string, expenseId: string, title: string) => {
     await deleteDoc(doc(db, `trips/${tripId}/expenses`, expenseId));
-    await activityService.logActivity(tripId, 'Deleted expense', title);
+    activityService.logActivity(tripId, 'Deleted expense', title).catch(e => console.error(e));
   },
 
   togglePaidStatus: async (tripId: string, expenseId: string, userId: string, currentStatus: boolean) => {

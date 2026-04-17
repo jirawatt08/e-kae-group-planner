@@ -66,8 +66,17 @@ export function MembersTab({ tripId, tripMembers }: { tripId: string; tripMember
 
   const handleCopyCode = () => {
     if (!inviteCode) return;
-    navigator.clipboard.writeText(inviteCode);
-    toast.success(t('copied') || 'Copied to clipboard');
+    const baseUrl = `${window.location.origin}/trip/${tripId}`;
+    let textToCopy = inviteCode;
+    
+    if (trip?.isJoinEnabled && getExpiryRemaining() > 0) {
+      textToCopy = `${baseUrl}?code=${inviteCode}`;
+      toast.success(t('share_link_copied') || 'Share link with code copied!');
+    } else {
+      toast.success(t('copied') || 'Copied to clipboard');
+    }
+    
+    navigator.clipboard.writeText(textToCopy);
   };
 
   const getCooldownRemaining = () => {
@@ -192,7 +201,7 @@ export function MembersTab({ tripId, tripMembers }: { tripId: string; tripMember
             <div className="flex flex-col gap-2">
               <Button variant="outline" onClick={handleCopyCode} className="h-full">
                 <Copy className="h-4 w-4 mr-2" />
-                {t('copy_code')}
+                {trip?.isJoinEnabled ? t('copy_link') || 'Copy Link' : t('copy_code')}
               </Button>
               {isOwner && (
                 <div className="relative group">

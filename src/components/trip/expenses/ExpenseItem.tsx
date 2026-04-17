@@ -1,8 +1,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Receipt, Plus, Trash2 } from 'lucide-react';
-import { Expense } from '../../../types';
+import { Receipt, Plus, Trash2, UserPlus } from 'lucide-react';
+import { Expense, ExtraDetail } from '../../../types';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
 interface ExpenseItemProps {
@@ -32,16 +32,36 @@ export function ExpenseItem({
   onTogglePaid
 }: ExpenseItemProps) {
   const { t } = useLanguage();
+  const guestNames: string[] = expense.guestNames || [];
+  const extraDetails: ExtraDetail[] = expense.extraDetails || [];
 
   const paidByMap = getPaidByMap(expense);
   const extras: Record<string, number> = expense.extras || {};
-  const shares = calcShares(expense.amount, expense.splitAmong, extras);
-  const totalExtras = Object.values(extras).reduce((s: number, v: number) => s + v, 0);
+  
+  // Merge extraDetails into extras for calculation
+  const computedExtras = { ...extras };
+  extraDetails.forEach((detail) => {
+    const amt = detail.amount || 0;
+    if (amt > 0 && detail.forPerson) {
+      computedExtras[detail.forPerson] = (computedExtras[detail.forPerson] || 0) + amt;
+    }
+  });
+
+  const shares = calcShares(expense.amount, expense.splitAmong, computedExtras);
+  const totalExtras = Object.values(computedExtras).reduce((s: number, v: number) => s + v, 0);
   const sharedBase = Math.max(0, expense.amount - totalExtras);
   const perPerson = expense.splitAmong.length > 0 ? sharedBase / expense.splitAmong.length : 0;
   
+  const getPersonName = (id: string) => {
+    if (id.startsWith('guest:')) {
+      const idx = parseInt(id.split(':')[1]);
+      return guestNames[idx] || `Guest ${idx + 1}`;
+    }
+    return displayName(id, currentUserId, memberProfiles, t('you'));
+  };
+
   const payerNames = Object.entries(paidByMap)
-    .map(([uid, amt]) => `${displayName(uid, currentUserId, memberProfiles, t('you'))} ฿${(amt as number).toLocaleString()}`)
+    .map(([uid, amt]) => `${getPersonName(uid)} ฿${(amt as number).toLocaleString()}`)
     .join(', ');
 
   return (
@@ -68,6 +88,31 @@ export function ExpenseItem({
         )}
       </div>
 
+      {/* Guest names badge */}
+      {guestNames.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {guestNames.map((name, i) => (
+            <span key={i} className="inline-flex items-center gap-1 text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+              <UserPlus className="h-2.5 w-2.5" />
+              {name || `Guest ${i + 1}`}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Extra Details */}
+      {extraDetails.length > 0 && (
+        <div className="mb-3 bg-amber-50 border border-amber-200 rounded-md p-2">
+          <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider mb-1">{t('extra_costs') || 'Extra Costs'}</p>
+          {extraDetails.map((detail, idx) => (
+            <div key={detail.id || idx} className="flex justify-between text-xs text-amber-800">
+              <span>{detail.label || 'Item'} → {getPersonName(detail.forPerson)}</span>
+              <span className="font-medium">+฿{(detail.amount || 0).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="bg-gray-50 rounded-md p-3">
         <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
           {t('split_each')} (฿{perPerson.toLocaleString(undefined, { maximumFractionDigits: 2 })} {t('each') || 'each'}
@@ -76,14 +121,14 @@ export function ExpenseItem({
         <div className="space-y-2">
           {expense.splitAmong.map((uid: string) => {
             const personShare = shares[uid] || 0;
-            const personExtra = extras[uid] || 0;
+            const personExtra = computedExtras[uid] || 0;
             const hasPaid = expense.paidStatus?.[uid] || false;
             const isPayer = uid in paidByMap;
 
             return (
               <div key={uid} className="flex items-center justify-between text-sm">
                 <span className={isPayer ? 'font-medium' : ''}>
-                  {displayName(uid, currentUserId, memberProfiles, t('you'))}
+                  {getPersonName(uid)}
                   {isPayer && ` (${t('payer')})`}
                   <span className="text-gray-500 ml-1">
                     ฿{personShare.toLocaleString(undefined, { maximumFractionDigits: 2 })}

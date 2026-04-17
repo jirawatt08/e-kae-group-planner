@@ -30,6 +30,8 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string; 
     paidAmounts: {} as Record<string, string>,
     splitAmong: [...memberIds],
     extras: {} as Record<string, string>, // uid -> extra amount string
+    extraDetails: [] as any[],
+    guestNames: [] as string[],
   });
 
   const [newExpense, setNewExpense] = useState(emptyForm());
@@ -69,6 +71,14 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string; 
       initialPaidStatus[uid] = uid in paidByMap;
     });
 
+    // Build extraDetails for DB
+    const extraDetails = (newExpense.extraDetails || []).filter((d: any) => d.label && parseFloat(d.amount) > 0).map((d: any) => ({
+      id: d.id,
+      label: d.label,
+      amount: parseFloat(d.amount) || 0,
+      forPerson: d.forPerson
+    }));
+
     const success = await createExpense({
       title: newExpense.title,
       amount: amountNum,
@@ -76,6 +86,8 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string; 
       paidByMap,
       splitAmong: newExpense.splitAmong,
       extras,
+      extraDetails,
+      guestNames: (newExpense.guestNames || []).filter((n: string) => n.trim()),
       paidStatus: initialPaidStatus,
     });
     
@@ -106,6 +118,14 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string; 
       if (v > 0) extras[uid] = v;
     }
 
+    // Build extraDetails for DB
+    const extraDetails = ((editingExpense as any).extraDetails || []).filter((d: any) => d.label && parseFloat(d.amount) > 0).map((d: any) => ({
+      id: d.id,
+      label: d.label,
+      amount: parseFloat(d.amount) || 0,
+      forPerson: d.forPerson
+    }));
+
     const success = await updateExpense(editingExpense.id, {
       title: editingExpense.title,
       amount: amountNum,
@@ -113,6 +133,8 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string; 
       paidByMap,
       splitAmong: editingExpense.splitAmong || [],
       extras,
+      extraDetails,
+      guestNames: ((editingExpense as any).guestNames || []).filter((n: string) => n.trim()),
       paidStatus: editingExpense.paidStatus || {},
     });
 
@@ -139,6 +161,8 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string; 
       paidByUids,
       paidAmounts,
       extras: extrasStr,
+      extraDetails: expense.extraDetails || [],
+      guestNames: expense.guestNames || [],
     } as any);
     setIsEditOpen(true);
   };

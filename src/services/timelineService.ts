@@ -9,6 +9,7 @@ export interface TimelineEventInput {
   endTime?: string;
   location: string;
   mapLink: string;
+  checklist?: { id: string; text: string; checked: boolean }[];
 }
 
 export const timelineService = {
@@ -20,6 +21,7 @@ export const timelineService = {
       startTime: new Date(data.startTime),
       location: data.location || '',
       mapLink: data.mapLink || '',
+      checklist: (data.checklist || []).filter(i => i.text.trim()),
       createdBy: userId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
@@ -30,7 +32,8 @@ export const timelineService = {
     }
 
     const docRef = await addDoc(collection(db, `trips/${tripId}/timeline`), eventData);
-    await activityService.logActivity(tripId, 'Added timeline event', data.title);
+    // Non-blocking log
+    activityService.logActivity(tripId, 'Added timeline event', data.title).catch(e => console.error(e));
     return docRef;
   },
 
@@ -41,6 +44,7 @@ export const timelineService = {
       startTime: new Date(data.startTime),
       location: data.location || '',
       mapLink: data.mapLink || '',
+      checklist: (data.checklist || []).filter(i => i.text.trim()),
       updatedAt: serverTimestamp()
     };
 
@@ -53,11 +57,12 @@ export const timelineService = {
     }
 
     await updateDoc(doc(db, `trips/${tripId}/timeline`, eventId), eventData);
-    await activityService.logActivity(tripId, 'Updated timeline event', data.title);
+    // Non-blocking log
+    activityService.logActivity(tripId, 'Updated timeline event', data.title).catch(e => console.error(e));
   },
 
   deleteEvent: async (tripId: string, eventId: string, title: string) => {
     await deleteDoc(doc(db, `trips/${tripId}/timeline`, eventId));
-    await activityService.logActivity(tripId, 'Deleted timeline event', title);
+    activityService.logActivity(tripId, 'Deleted timeline event', title).catch(e => console.error(e));
   }
 };

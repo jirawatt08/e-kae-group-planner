@@ -28,7 +28,8 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
     description: '',
     startTime: '',
     location: '',
-    mapLink: ''
+    mapLink: '',
+    checklist: [] as any[]
   });
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
     const success = await createEvent(newEvent);
     if (success) {
       setIsCreateOpen(false);
-      setNewEvent({ title: '', description: '', startTime: '', location: '', mapLink: '' });
+      setNewEvent({ title: '', description: '', startTime: '', location: '', mapLink: '', checklist: [] });
     }
   };
 
@@ -69,6 +70,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
       startTime: editingEvent.startTime as unknown as string,
       location: editingEvent.location,
       mapLink: editingEvent.mapLink,
+      checklist: editingEvent.checklist || [],
     });
     if (success) {
       setIsEditOpen(false);
@@ -89,7 +91,8 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
     
     setEditingEvent({
       ...event,
-      startTime: startTimeStr
+      startTime: startTimeStr,
+      checklist: event.checklist || []
     });
     setIsEditOpen(true);
   };
@@ -182,6 +185,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
               <TimelineItem
                 key={event.id}
                 event={event as TimelineEvent}
+                tripId={tripId}
                 canEdit={canEdit}
                 onEdit={openEditDialog}
                 onDelete={handleDelete}

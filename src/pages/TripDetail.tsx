@@ -27,6 +27,15 @@ function TripDetailContent() {
   const [inputCode, setInputCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
 
+  // Auto-fill code from URL query param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('code');
+    if (codeParam) {
+      setInputCode(codeParam.toUpperCase());
+    }
+  }, []);
+
   useEffect(() => {
     if (!loading && !trip) {
       toast.error(t('trip_not_found'));
@@ -36,8 +45,26 @@ function TripDetailContent() {
 
   const isMember = user && trip && trip.members[user.uid];
 
+  // Check if the invite code is expired (30 min)
+  const isCodeExpired = (): boolean => {
+    if (!trip?.lastCodeGeneratedAt) return true;
+    const generatedAt = trip.lastCodeGeneratedAt.toDate().getTime();
+    const now = Date.now();
+    return (now - generatedAt) > 30 * 60 * 1000;
+  };
+
   const handleJoin = async () => {
     if (!user || !trip) return;
+    
+    if (!trip.isJoinEnabled) {
+      toast.error(t('join_code_disabled') || 'Join by code is currently disabled.');
+      return;
+    }
+
+    if (isCodeExpired()) {
+      toast.error(t('code_expired') || 'This invite code has expired. Ask the trip owner to refresh it.');
+      return;
+    }
     
     // Validate code
     if (inputCode.toUpperCase() !== trip.inviteCode?.toUpperCase()) {
@@ -62,8 +89,16 @@ function TripDetailContent() {
   };
 
   const handleShare = () => {
-    navigator.clipboard.writeText(window.location.href);
-    toast.success(t('copied'));
+    if (!trip) return;
+    const baseUrl = `${window.location.origin}/trip/${tripId}`;
+    if (trip.isJoinEnabled && trip.inviteCode && !isCodeExpired()) {
+      const shareUrl = `${baseUrl}?code=${trip.inviteCode}`;
+      navigator.clipboard.writeText(shareUrl);
+      toast.success(t('share_link_copied') || 'Share link with code copied!');
+    } else {
+      navigator.clipboard.writeText(baseUrl);
+      toast.success(t('copied'));
+    }
   };
 
   const handleDeleteTrip = async () => {
@@ -84,6 +119,9 @@ function TripDetailContent() {
   }
 
   if (user && !isMember) {
+    const expired = isCodeExpired();
+    const joinDisabled = !trip.isJoinEnabled;
+    
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
         <div className="max-w-md w-full">
@@ -95,45 +133,60 @@ function TripDetailContent() {
               <h1 className="text-2xl font-bold mb-2 text-gray-900 px-4">
                 {trip.name}
               </h1>
-              <p className="text-sm text-gray-500 leading-relaxed px-4">
-                {t('invite_message') || 'You have been invited to join this trip planner. Please enter the invite code to access the trip.'}
-              </p>
+              
+              {joinDisabled ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                  <p className="text-sm text-red-600 font-medium">{t('join_code_disabled') || 'Join by code is currently disabled.'}</p>
+                  <p className="text-xs text-red-400 mt-1">{t('contact_owner') || 'Please ask the trip owner to enable it.'}</p>
+                </div>
+              ) : expired ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
+                  <p className="text-sm text-amber-600 font-medium">{t('code_expired') || 'This invite code has expired.'}</p>
+                  <p className="text-xs text-amber-400 mt-1">{t('ask_new_code') || 'Ask the trip owner to refresh the code.'}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 leading-relaxed px-4">
+                  {t('invite_message') || 'You have been invited to join this trip planner. Please enter the invite code to access the trip.'}
+                </p>
+              )}
             </div>
             
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest block text-left pl-1">
-                  {t('enter_code')}
-                </label>
-                <input
-                  type="text"
-                  value={inputCode}
-                  onChange={(e) => setInputCode(e.target.value.toUpperCase())}
-                  placeholder="------"
-                  className="w-full text-center text-4xl tracking-[0.4em] font-mono h-20 bg-gray-50 border rounded-xl text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                  maxLength={6}
-                  autoFocus
-                />
-              </div>
+            {!joinDisabled && !expired && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-gray-400 uppercase tracking-widest block text-left pl-1">
+                    {t('enter_code')}
+                  </label>
+                  <input
+                    type="text"
+                    value={inputCode}
+                    onChange={(e) => setInputCode(e.target.value.toUpperCase())}
+                    placeholder="------"
+                    className="w-full text-center text-4xl tracking-[0.4em] font-mono h-20 bg-gray-50 border rounded-xl text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                    maxLength={6}
+                    autoFocus
+                  />
+                </div>
 
-              <div className="pt-2">
-                <Button 
-                  className="w-full py-8 text-lg font-bold"
-                  onClick={handleJoin} 
-                  disabled={isJoining || inputCode.length < 6}
-                >
-                  {isJoining ? t('loading') : t('join_trip')}
-                </Button>
+                <div className="pt-2">
+                  <Button 
+                    className="w-full py-8 text-lg font-bold"
+                    onClick={handleJoin} 
+                    disabled={isJoining || inputCode.length < 6}
+                  >
+                    {isJoining ? t('loading') : t('join_trip')}
+                  </Button>
+                </div>
               </div>
+            )}
 
-              <Button 
-                variant="ghost" 
-                className="w-full text-gray-400 font-medium text-sm"
-                onClick={() => navigate('/')}
-              >
-                {t('go_back') || 'Go Back'}
-              </Button>
-            </div>
+            <Button 
+              variant="ghost" 
+              className="w-full text-gray-400 font-medium text-sm mt-4"
+              onClick={() => navigate('/')}
+            >
+              {t('go_back') || 'Go Back'}
+            </Button>
           </div>
         </div>
       </div>

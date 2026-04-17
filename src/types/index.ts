@@ -32,10 +32,25 @@ export interface Expense {
   splitMode: 'equal' | 'extras' | 'exact';
   exactSplits?: Record<string, number>;
   extras?: Record<string, number>;
+  extraDetails?: ExtraDetail[]; // detailed extra cost items
+  guestNames?: string[]; // non-member participants (name only)
   paidStatus: Record<string, boolean>;
   createdBy: string;
   createdAt: any;
   updatedAt: any;
+}
+
+export interface ExtraDetail {
+  id: string;
+  label: string;
+  amount: number;
+  forPerson: string; // uid or guest name prefixed with "guest:"
+}
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  checked: boolean;
 }
 
 export interface TimelineEvent {
@@ -47,6 +62,7 @@ export interface TimelineEvent {
   endTime?: any; // Firestore Timestamp
   location: string;
   mapLink: string;
+  checklist?: ChecklistItem[];
   createdBy: string;
   createdAt: any;
   updatedAt: any;
