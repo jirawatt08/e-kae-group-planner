@@ -13,11 +13,12 @@ import { toDate, safeFormat, getDayNumber, getDayColor } from '../../lib/dateUti
 import { TimelineForm } from './timeline/TimelineForm';
 import { TimelineItem } from './timeline/TimelineItem';
 import { DayHeader } from './timeline/DayHeader';
+import { AIPlannerDialog } from './timeline/AIPlannerDialog';
 
 export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: boolean }) {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { timeline: events } = useTripData();
+  const { timeline: events, trip } = useTripData();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
@@ -143,6 +144,13 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
                 />
               </DialogContent>
             </Dialog>
+          )}
+          {canEdit && (
+            <AIPlannerDialog 
+              tripId={tripId} 
+              tripName={trip?.name || ''} 
+              onSuccess={() => {}} 
+            />
           )}
         </div>
       </div>
