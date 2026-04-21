@@ -72,15 +72,15 @@ export function ExpenseItem({
     });
 
   return (
-    <div className="bg-white border rounded-lg p-4 shadow-sm">
+    <div className="bg-card border border-border rounded-lg p-4 shadow-sm transition-colors">
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center cursor-pointer" onClick={() => canEdit && onEdit(expense)}>
-          <div className="bg-green-100 p-2 rounded-full mr-3">
-            <Receipt className="h-5 w-5 text-green-600" />
+          <div className="bg-emerald-500/10 p-2 rounded-full mr-3">
+            <Receipt className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">{expense.title}</h3>
-            <div className="text-sm text-gray-500 flex flex-wrap items-center gap-1">
+            <h3 className="font-semibold text-foreground">{expense.title}</h3>
+            <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-1">
               <span>{t('paid_by')}</span> 
               <div className="flex flex-wrap gap-1">
                 {payerNames}
@@ -91,10 +91,10 @@ export function ExpenseItem({
         </div>
         {canEdit && (
           <div className="flex space-x-1">
-            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-primary" onClick={() => onEdit(expense)}>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary whitespace-nowrap" onClick={() => onEdit(expense)}>
               <Plus className="h-4 w-4 rotate-45" />
             </Button>
-            <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => onDelete(expense.id)}>
+            <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => onDelete(expense.id)}>
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -105,7 +105,7 @@ export function ExpenseItem({
       {guestNames.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
           {guestNames.map((name, i) => (
-            <span key={i} className="inline-flex items-center gap-1 text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+            <span key={i} className="inline-flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
               <UserPlus className="h-2.5 w-2.5" />
               {name || `Guest ${i + 1}`}
             </span>
@@ -115,21 +115,21 @@ export function ExpenseItem({
 
       {/* Extra Details */}
       {extraDetails.length > 0 && (
-        <div className="mb-3 bg-amber-50 border border-amber-200 rounded-md p-2">
-          <p className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider mb-1">{t('extra_costs') || 'Extra Costs'}</p>
+        <div className="mb-3 bg-amber-500/10 border border-amber-500/20 rounded-md p-2">
+          <p className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">{t('extra_costs') || 'Extra Costs'}</p>
           {extraDetails.map((detail, idx) => (
-            <div key={detail.id || idx} className="flex justify-between text-xs text-amber-800">
-              <span>{detail.label || 'Item'} → {getPersonName(detail.forPerson)}</span>
-              <span className="font-medium">+฿{(detail.amount || 0).toLocaleString()}</span>
+            <div key={detail.id || idx} className="flex justify-between text-xs text-amber-900 dark:text-amber-200">
+              <span className="opacity-80">{detail.label || 'Item'} → {getPersonName(detail.forPerson)}</span>
+              <span className="font-bold">+฿{(detail.amount || 0).toLocaleString()}</span>
             </div>
           ))}
         </div>
       )}
 
-      <div className="bg-gray-50 rounded-md p-3">
-        <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-          {t('split_each')} (฿{perPerson.toLocaleString(undefined, { maximumFractionDigits: 2 })} {t('each') || 'each'}
-          {totalExtras > 0 && ` + ${t('extras') || 'extras'}`})
+      <div className="bg-muted/50 rounded-md p-3">
+        <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">
+          {t('split_each')} (฿{perPerson.toLocaleString(undefined, { maximumFractionDigits: 2 })} {t('each')}
+          {totalExtras > 0 && ` + ${t('extras')}`})
         </h4>
         <div className="space-y-2">
           {expense.splitAmong.map((uid: string) => {
@@ -143,15 +143,15 @@ export function ExpenseItem({
                 <span className={isPayer ? 'font-medium' : ''}>
                   <span style={getUserColorStyles(uid).text}>{getPersonName(uid)}</span>
                   {isPayer && ` (${t('payer')})`}
-                  <span className="text-gray-500 ml-1">
+                  <span className="text-muted-foreground ml-1">
                     ฿{personShare.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                   </span>
                   {personExtra > 0 && (
-                    <span className="text-amber-600 text-xs ml-1">(+฿{personExtra.toLocaleString()})</span>
+                    <span className="text-amber-600 dark:text-amber-400 text-[10px] font-bold ml-1 tracking-tighter">(+฿{personExtra.toLocaleString()})</span>
                   )}
                 </span>
                 <div className="flex items-center space-x-2">
-                  <span className={hasPaid ? 'text-green-600' : 'text-orange-500'}>
+                  <span className={`text-xs font-bold leading-none ${hasPaid ? 'text-emerald-600 dark:text-emerald-400' : 'text-orange-500'}`}>
                     {hasPaid ? t('settled') : t('owes')}
                   </span>
                   {!isPayer && (

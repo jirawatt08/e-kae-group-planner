@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc, updateDoc, where, documentId, getDocs, limit } from 'firebase/firestore';
 import { useAuth } from './AuthContext';
 import { tripService } from '../services/tripService';
 import { db } from '../firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestoreError';
+import { profileCache } from '../lib/profileCache';
+import { useMemo } from 'react';
 
 interface TripDataContextType {
   trip: any;
@@ -11,6 +13,7 @@ interface TripDataContextType {
   expenses: any[];
   ideas: any[];
   activities: any[];
+  potTransactions: any[];
   memberProfiles: Record<string, any>;
   loading: boolean;
 }
@@ -23,6 +26,7 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
   const [expenses, setExpenses] = useState<any[]>([]);
   const [ideas, setIdeas] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const [potTransactions, setPotTransactions] = useState<any[]>([]);
   const [memberProfiles, setMemberProfiles] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
@@ -33,24 +37,49 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
     if (!trip?.members) return;
     const uids = Object.keys(trip.members);
     
-    // We can fetch profiles individually since 'in' query is limited to 10
     const fetchProfiles = async () => {
       const newProfiles: Record<string, any> = {};
+      const uidsToFetch: string[] = [];
+
+      // 1. Check local state and cache first
+      uids.forEach(uid => {
+        const cached = profileCache.get(uid);
+        if (memberProfiles[uid]) {
+          newProfiles[uid] = memberProfiles[uid];
+        } else if (cached) {
+          newProfiles[uid] = cached;
+        } else {
+          uidsToFetch.push(uid);
+        }
+      });
+
+      if (uidsToFetch.length === 0) {
+        if (Object.keys(newProfiles).length > Object.keys(memberProfiles).length) {
+          setMemberProfiles(newProfiles);
+        }
+        return;
+      }
+
+      // 2. Batch fetch missing profiles (Firestore 'in' limit is 30)
       try {
-        await Promise.all(uids.map(async (uid) => {
-          // If already feched, reuse
-          if (memberProfiles[uid]) {
-            newProfiles[uid] = memberProfiles[uid];
-            return;
-          }
-          const userDoc = await getDoc(doc(db, 'users', uid));
-          if (userDoc.exists()) {
-            newProfiles[uid] = userDoc.data();
-          }
+        const chunks = [];
+        for (let i = 0; i < uidsToFetch.length; i += 30) {
+          chunks.push(uidsToFetch.slice(i, i + 30));
+        }
+
+        await Promise.all(chunks.map(async (chunk) => {
+          const q = query(collection(db, 'users'), where(documentId(), 'in', chunk));
+          const snap = await getDocs(q);
+          snap.docs.forEach(d => {
+            const data = d.data();
+            newProfiles[d.id] = data;
+            profileCache.set(d.id, data);
+          });
         }));
+
         setMemberProfiles(prev => ({ ...prev, ...newProfiles }));
       } catch (error) {
-        console.error('Error fetching member profiles:', error);
+        console.error('Error batch fetching profiles:', error);
       }
     };
     fetchProfiles();
@@ -103,11 +132,18 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
       handleFirestoreError(error, OperationType.LIST, `trips/${tripId}/ideas`);
     });
 
-    // 5. Activities Listener
-    const unsubActivities = onSnapshot(query(collection(db, `trips/${tripId}/activity`), orderBy('createdAt', 'desc')), (snapshot) => {
+    // 5. Activities Listener (Limited to 50 for performance)
+    const unsubActivities = onSnapshot(query(collection(db, `trips/${tripId}/activity`), orderBy('createdAt', 'desc'), limit(50)), (snapshot) => {
       setActivities(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, `trips/${tripId}/activity`);
+    });
+
+    // 6. Pot Listener
+    const unsubPot = onSnapshot(query(collection(db, `trips/${tripId}/pot`), orderBy('createdAt', 'desc')), (snapshot) => {
+      setPotTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `trips/${tripId}/pot`);
     });
 
     return () => {
@@ -116,11 +152,23 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
       unsubExpenses();
       unsubIdeas();
       unsubActivities();
+      unsubPot();
     };
   }, [tripId, user, !!trip?.members?.[user?.uid]]);
 
+  const contextValue = useMemo(() => ({
+    trip,
+    timeline,
+    expenses,
+    ideas,
+    activities,
+    potTransactions,
+    memberProfiles,
+    loading
+  }), [trip, timeline, expenses, ideas, activities, potTransactions, memberProfiles, loading]);
+
   return (
-    <TripDataContext.Provider value={{ trip, timeline, expenses, ideas, activities, memberProfiles, loading }}>
+    <TripDataContext.Provider value={contextValue}>
       {children}
     </TripDataContext.Provider>
   );

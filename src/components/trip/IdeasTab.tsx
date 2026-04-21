@@ -11,11 +11,12 @@ import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
 import { IdeaForm } from './ideas/IdeaForm';
 import { IdeaItem } from './ideas/IdeaItem';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function IdeasTab({ tripId, canEdit }: { tripId: string, canEdit: boolean }) {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { ideas: rawIdeas } = useTripData();
+  const { ideas: rawIdeas, loading: dataLoading } = useTripData();
   
   // Sort by votes length client-side
   const ideas = [...rawIdeas].sort((a, b) => (b.votes?.length || 0) - (a.votes?.length || 0));
@@ -117,8 +118,14 @@ export function IdeasTab({ tripId, canEdit }: { tripId: string, canEdit: boolean
       </Dialog>
 
       <div className="flex-1 overflow-y-auto">
-        {ideas.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+        {dataLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <Skeleton key={i} className="h-32 w-full rounded-xl" />
+            ))}
+          </div>
+        ) : ideas.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
             {t('no_ideas')}
           </div>
         ) : (

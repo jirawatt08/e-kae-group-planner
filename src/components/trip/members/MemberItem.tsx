@@ -35,15 +35,15 @@ export function MemberItem({
   const resolvedName = resolveDisplayName(uid, user?.uid, memberProfiles, t('you'));
 
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg border bg-white shadow-sm">
+    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card shadow-sm">
       <div className="flex items-center gap-3">
         <div className={`${config.bg} p-2 rounded-full`}>
           <RoleIcon className={`h-4 w-4 ${config.color}`} />
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-foreground">
             {resolvedName}
-            {isMe && <span className="ml-1 text-xs text-gray-400">({t('me')})</span>}
+            {isMe && <span className="ml-1 text-xs text-muted-foreground">({t('me')})</span>}
           </p>
           <p className={`text-xs ${config.color} font-medium`}>
             {language === 'th' ? config.thLabel : config.label}
@@ -54,12 +54,12 @@ export function MemberItem({
       {isOwner && !isMe && (
         <div className="flex items-center gap-1.5">
           <select
-            className="text-xs border rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="text-xs border border-border rounded-md px-2 py-1.5 bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
             value={role}
             onChange={(e) => onRoleChange(uid, e.target.value)}
           >
-            <option value="editor">{language === 'th' ? 'แก้ไขได้' : 'Editor'}</option>
-            <option value="viewer">{language === 'th' ? 'ดูได้อย่างเดียว' : 'Viewer'}</option>
+            <option value="editor" className="bg-card">{language === 'th' ? 'แก้ไขได้' : 'Editor'}</option>
+            <option value="viewer" className="bg-card">{language === 'th' ? 'ดูได้อย่างเดียว' : 'Viewer'}</option>
           </select>
         </div>
       )}

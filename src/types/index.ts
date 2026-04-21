@@ -88,3 +88,13 @@ export interface Activity {
   details: string;
   createdAt: any;
 }
+
+export interface PotTransaction {
+  id: string;
+  type: 'contribution' | 'spending';
+  amount: number;
+  description: string;
+  userId: string;
+  userName: string;
+  createdAt: any;
+}

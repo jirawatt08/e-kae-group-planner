@@ -11,11 +11,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus } from 'lucide-react';
 import { ExpenseForm } from './expenses/ExpenseForm';
 import { ExpenseItem } from './expenses/ExpenseItem';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string; canEdit: boolean; tripMembers: Record<string, string> }) {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { expenses, memberProfiles } = useTripData();
+  const { expenses, memberProfiles, loading: dataLoading } = useTripData();
   const { createExpense, updateExpense, deleteExpense, togglePaidStatus, loading } = useExpenses(tripId, canEdit);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -232,8 +233,22 @@ export function ExpensesTab({ tripId, canEdit, tripMembers }: { tripId: string; 
       </Dialog>
 
       <div className="flex-1 overflow-y-auto">
-        {expenses.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">{t('no_expenses')}</div>
+        {dataLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="bg-card border border-border rounded-xl p-4 flex justify-between items-center">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-1/4" />
+                </div>
+                <Skeleton className="h-8 w-16 rounded-lg" />
+              </div>
+            ))}
+          </div>
+        ) : expenses.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border hover:bg-muted/30 transition-colors">
+            {t('no_expenses')}
+          </div>
         ) : (
           <div className="space-y-4">
             {expenses.map((expense) => (

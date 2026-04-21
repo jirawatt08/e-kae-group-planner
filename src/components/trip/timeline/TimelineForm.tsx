@@ -96,8 +96,8 @@ export function TimelineForm({
       {/* Checklist / Reminders */}
       <div className="space-y-2">
         <Label>{t('checklist') || 'Checklist / Reminders'}</Label>
-        <p className="text-xs text-gray-500">{t('checklist_hint') || 'Add reminders like "Book hotel", "Reserve table", "Walk-in only"'}</p>
-        <div className="space-y-2 bg-blue-50 p-3 rounded-md border border-blue-200">
+        <p className="text-xs text-muted-foreground">{t('checklist_hint') || 'Add reminders like "Book hotel", "Reserve table", "Walk-in only"'}</p>
+        <div className="space-y-2 bg-muted/50 p-3 rounded-md border border-border">
           {checklist.map((item: any) => (
             <div key={item.id} className="flex items-center gap-2">
               <Input
@@ -106,7 +106,7 @@ export function TimelineForm({
                 value={item.text}
                 onChange={e => updateChecklistItem(item.id, e.target.value)}
               />
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600" onClick={() => removeChecklistItem(item.id)}>
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" onClick={() => removeChecklistItem(item.id)}>
                 <X className="h-3 w-3" />
               </Button>
             </div>

@@ -5,6 +5,36 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>E-Kae Group Planner</title>
+  <style>
+    /* Immediate theme colors to prevent FOUC */
+    :root { background-color: #ffffff; color: #171717; }
+    @media (prefers-color-scheme: dark) {
+      :root { background-color: #171717; color: #fafafa; }
+    }
+    /* Explicitly apply when class is present */
+    .dark { background-color: #171717 !important; color: #fafafa !important; }
+    .light { background-color: #ffffff !important; color: #171717 !important; }
+    
+    /* Hide the root content slightly to prevent layout jump during hydration */
+    #root:empty { display: none; }
+  </style>
+  <script>
+    (function() {
+      try {
+        const theme = localStorage.getItem('theme') || 'system';
+        const root = window.document.documentElement;
+        const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        
+        if (isDark) {
+          root.classList.add('dark');
+          root.style.colorScheme = 'dark';
+        } else {
+          root.classList.add('light');
+          root.style.colorScheme = 'light';
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 
 <body>

@@ -13,11 +13,12 @@ import { toDate, safeFormat, getDayNumber, getDayColor } from '../../lib/dateUti
 import { TimelineForm } from './timeline/TimelineForm';
 import { TimelineItem } from './timeline/TimelineItem';
 import { DayHeader } from './timeline/DayHeader';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: boolean }) {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { timeline: events } = useTripData();
+  const { timeline: events, loading: dataLoading } = useTripData();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
@@ -110,15 +111,15 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">{t('itinerary')}</h2>
         <div className="flex items-center gap-2">
-          <div className="flex bg-gray-100 p-1 rounded-lg mr-2">
+          <div className="flex bg-muted p-1 rounded-lg mr-2">
             <button 
-              className={`px-3 py-1 text-xs rounded-md transition-all ${viewMode === 'full' ? 'bg-white shadow-sm font-medium' : 'text-gray-500'}`}
+              className={`px-3 py-1 text-xs rounded-md transition-all ${viewMode === 'full' ? 'bg-card text-foreground shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'}`}
               onClick={() => setViewMode('full')}
             >
               {t('full_plan') || 'Full Plan'}
             </button>
             <button 
-              className={`px-3 py-1 text-xs rounded-md transition-all ${viewMode === 'day' ? 'bg-white shadow-sm font-medium' : 'text-gray-500'}`}
+              className={`px-3 py-1 text-xs rounded-md transition-all ${viewMode === 'day' ? 'bg-card text-foreground shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'}`}
               onClick={() => setViewMode('day')}
             >
               {t('day_view') || 'Day View'}
@@ -159,7 +160,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
                 className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all border ${
                   isSelected 
                     ? 'text-white border-transparent' 
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                    : 'bg-card text-muted-foreground border-border hover:border-muted-foreground/30 hover:text-foreground'
                 }`}
                 style={isSelected ? { backgroundColor: color } : {}}
               >
@@ -188,8 +189,24 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
       </Dialog>
 
       <div className="flex-1 overflow-y-auto -mx-1 px-1">
-        {events.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 bg-gray-50/50 rounded-lg border border-dashed">
+        {dataLoading ? (
+          <div className="space-y-12">
+            {[1, 2].map(day => (
+              <div key={day} className="space-y-6">
+                <Skeleton className="h-10 w-32 rounded-lg" />
+                <div className="ml-6 space-y-8">
+                  {[1, 2].map(event => (
+                    <div key={event} className="flex gap-4 items-start">
+                      <Skeleton className="h-4 w-4 rounded-full mt-2" />
+                      <Skeleton className="h-24 flex-1 rounded-xl" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : events.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border">
             {t('no_events')}
           </div>
         ) : viewMode === 'full' ? (
@@ -201,7 +218,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
                   dayNumber={group.dayNumber} 
                   eventCount={group.events.length} 
                 />
-                <div className="relative border-l-2 border-dashed border-gray-200 ml-3 md:ml-6 space-y-8 mt-4">
+                <div className="relative border-l-2 border-dashed border-border ml-3 md:ml-6 space-y-8 mt-4">
                   {group.events.map((event) => (
                     <TimelineItem
                       key={event.id}
@@ -218,7 +235,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
             ))}
           </div>
         ) : (
-          <div className="relative border-l-2 border-dashed border-gray-200 ml-3 md:ml-6 space-y-8 pb-8 mt-4">
+          <div className="relative border-l-2 border-dashed border-border ml-3 md:ml-6 space-y-8 pb-8 mt-4">
             {filteredEventsForDay.map((event) => (
               <TimelineItem
                 key={event.id}
@@ -231,7 +248,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string, canEdit: bool
               />
             ))}
             {filteredEventsForDay.length === 0 && (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-muted-foreground">
                 {t('no_events_on_day') || 'No events planned for this day.'}
               </div>
             )}

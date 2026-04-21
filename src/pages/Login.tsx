@@ -4,6 +4,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { ThemeSwitcher } from '../components/ThemeSwitcher';
 
 export function Login() {
   const { user, signIn } = useAuth();
@@ -16,8 +17,9 @@ export function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4 relative">
-      <div className="absolute top-4 right-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 relative transition-colors duration-300">
+      <div className="absolute top-4 right-4 flex gap-2">
+        <ThemeSwitcher />
         <LanguageSwitcher />
       </div>
       <Card className="w-full max-w-md">

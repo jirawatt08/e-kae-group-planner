@@ -34,12 +34,12 @@ export function IdeaItem({
   const createdBy = resolveDisplayName(idea.createdBy, user?.uid, memberProfiles, t('you'));
 
   return (
-    <div className="bg-white border rounded-lg p-4 shadow-sm flex flex-col h-full">
+    <div className="bg-card border border-border rounded-xl p-4 shadow-sm flex flex-col h-full transition-colors group hover:shadow-md">
       <div className="flex justify-between items-start mb-2">
         <div className="flex flex-col flex-1 cursor-pointer" onClick={() => (canEdit || idea.createdBy === currentUserId) && onEdit(idea)}>
           <div className="flex items-center">
             <Lightbulb className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
-            <h3 className="font-semibold text-gray-900 line-clamp-2">{idea.title}</h3>
+            <h3 className="font-semibold text-foreground line-clamp-2">{idea.title}</h3>
           </div>
           <span 
             className="text-[10px] font-semibold mt-1 px-1.5 py-0.5 rounded border transition-colors self-start"
@@ -49,11 +49,11 @@ export function IdeaItem({
           </span>
         </div>
         {canDelete && (
-          <div className="flex space-x-1 -mr-2 -mt-2">
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-primary" onClick={() => onEdit(idea)}>
+          <div className="flex space-x-1 -mr-2 -mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => onEdit(idea)}>
               <Plus className="h-3 w-3 rotate-45" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-6 w-6 text-gray-400 hover:text-red-500" onClick={() => onDelete(idea.id, idea.createdBy)}>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => onDelete(idea.id, idea.createdBy)}>
               <Trash2 className="h-3 w-3" />
             </Button>
           </div>
@@ -61,7 +61,7 @@ export function IdeaItem({
       </div>
       
       {idea.description && (
-        <p className="text-sm text-gray-600 mb-3 flex-1 line-clamp-3">{idea.description}</p>
+        <p className="text-sm text-muted-foreground mb-4 flex-1 line-clamp-3 leading-relaxed italic opacity-80">{idea.description}</p>
       )}
       
       {idea.link && (
@@ -71,8 +71,8 @@ export function IdeaItem({
         </a>
       )}
       
-      <div className="mt-auto pt-3 border-t flex justify-between items-center">
-        <span className="text-xs text-gray-500">
+      <div className="mt-auto pt-3 border-t border-border flex justify-between items-center">
+        <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/60">
           {idea.votes?.length || 0} {t('votes')}
         </span>
         <Button 
