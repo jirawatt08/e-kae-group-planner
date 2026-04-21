@@ -225,7 +225,7 @@ export function MembersTab({ tripId, tripMembers }: { tripId: string; tripMember
                   )}
                   {expiryTime > 0 && (
                     <div className="mt-1 text-[10px] text-muted-foreground flex items-center justify-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
                       {Math.ceil(expiryTime / 60000)}m {t('left') || 'left'}
                     </div>
                   )}

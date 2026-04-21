@@ -147,8 +147,8 @@ export function ExpenseForm({
           <UserPlus className="h-4 w-4" />
           {t('guests') || 'Guests (not in trip)'}
         </Label>
-        <p className="text-xs text-gray-500">{t('guests_hint') || 'Add people who are not trip members but need to be included in this expense.'}</p>
-        <div className="space-y-2 bg-purple-50 p-3 rounded-md border border-purple-200">
+        <p className="text-xs text-muted-foreground">{t('guests_hint') || 'Add people who are not trip members but need to be included in this expense.'}</p>
+        <div className="space-y-2 bg-info/5 p-3 rounded-md border border-info/20">
           {guestNames.map((name: string, index: number) => (
             <div key={index} className="flex items-center gap-2">
               <Input
@@ -157,7 +157,7 @@ export function ExpenseForm({
                 value={name}
                 onChange={e => updateGuest(index, e.target.value)}
               />
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600" onClick={() => removeGuest(index)}>
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" onClick={() => removeGuest(index)}>
                 <X className="h-3 w-3" />
               </Button>
             </div>
@@ -172,8 +172,8 @@ export function ExpenseForm({
       {/* Who paid */}
       <div className="space-y-2">
         <Label>{t('who_paid')}</Label>
-        <p className="text-xs text-gray-500">{t('multi_payer_hint') || 'Check who paid and enter their amount'}</p>
-        <div className="space-y-2 bg-gray-50 p-3 rounded-md border">
+        <p className="text-xs text-muted-foreground">{t('multi_payer_hint') || 'Check who paid and enter their amount'}</p>
+        <div className="space-y-2 bg-muted/20 p-3 rounded-md border">
           {memberIds.map(uid => {
             const isChecked = (data.paidByUids || []).includes(uid);
             return (
@@ -182,7 +182,7 @@ export function ExpenseForm({
                 <span className="flex-1 text-sm truncate">{displayName(uid, currentUserId, memberProfiles, t('me'))}</span>
                 {isChecked && (
                   <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-500">฿</span>
+                    <span className="text-xs text-muted-foreground">฿</span>
                     <Input type="number" step="0.01" min="0" className="w-24 h-8" placeholder="Amount"
                       value={data.paidAmounts?.[uid] || ''}
                       onChange={e => setState((p: any) => ({ ...p, paidAmounts: { ...(p.paidAmounts || {}), [uid]: e.target.value } }))} />
@@ -197,8 +197,8 @@ export function ExpenseForm({
       {/* Extra costs with details */}
       <div className="space-y-2">
         <Label>{t('extra_costs') || 'Extra / Personal Items'}</Label>
-        <p className="text-xs text-gray-500">{t('extra_detail_hint') || 'Add specific extra costs with a label, amount, and who it\'s for.'}</p>
-        <div className="space-y-2 bg-amber-50 p-3 rounded-md border border-amber-200">
+        <p className="text-xs text-muted-foreground">{t('extra_detail_hint') || 'Add specific extra costs with a label, amount, and who it\'s for.'}</p>
+        <div className="space-y-2 bg-warning/5 p-3 rounded-md border border-warning/20">
           {extraDetails.map((detail: any) => (
             <div key={detail.id} className="flex items-center gap-2 flex-wrap">
               <Input
@@ -208,14 +208,14 @@ export function ExpenseForm({
                 onChange={e => updateExtraDetail(detail.id, 'label', e.target.value)}
               />
               <div className="flex items-center gap-1">
-                <span className="text-xs text-gray-500">฿</span>
+                <span className="text-xs text-muted-foreground">฿</span>
                 <Input type="number" step="0.01" min="0" className="w-20 h-8 text-sm" placeholder="0"
                   value={detail.amount}
                   onChange={e => updateExtraDetail(detail.id, 'amount', e.target.value)}
                 />
               </div>
               <select
-                className="h-8 text-sm border rounded-md px-2 bg-white"
+                className="h-8 text-sm border rounded-md px-2 bg-card"
                 value={detail.forPerson}
                 onChange={e => updateExtraDetail(detail.id, 'forPerson', e.target.value)}
               >
@@ -223,7 +223,7 @@ export function ExpenseForm({
                   <option key={id} value={id}>{getPersonName(id)}</option>
                 ))}
               </select>
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600" onClick={() => removeExtraDetail(detail.id)}>
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive/80" onClick={() => removeExtraDetail(detail.id)}>
                 <X className="h-3 w-3" />
               </Button>
             </div>
@@ -244,18 +244,18 @@ export function ExpenseForm({
           const perPerson = splitMembers.length > 0 ? sharedBase / splitMembers.length : 0;
 
           return (
-            <div className="mt-3 p-3 bg-white rounded-md border text-sm">
-              <p className="font-medium text-gray-700 mb-2">{t('preview') || '💡 Preview'}</p>
-              <p className="text-xs text-gray-500 mb-1">
+            <div className="mt-3 p-3 bg-card rounded-md border text-sm">
+              <p className="font-medium text-foreground mb-2">{t('preview') || '💡 Preview'}</p>
+              <p className="text-xs text-muted-foreground mb-1">
                 {t('shared_base') || 'Shared base'}: ฿{sharedBase.toLocaleString()} ÷ {splitMembers.length} = ฿{perPerson.toLocaleString(undefined, { maximumFractionDigits: 2 })} {t('each') || 'each'}
               </p>
               <div className="space-y-1">
                 {splitMembers.map((id: string) => (
                   <div key={id} className="flex justify-between">
-                    <span className="text-gray-600">{getPersonName(id)}</span>
+                    <span className="text-muted-foreground">{getPersonName(id)}</span>
                     <span className="font-medium">
                       ฿{(shares[id] || perPerson)?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                      {(computedExtras[id] || 0) > 0 && <span className="text-amber-600 text-xs ml-1">(+฿{computedExtras[id]})</span>}
+                      {(computedExtras[id] || 0) > 0 && <span className="text-warning text-xs ml-1">(+฿{computedExtras[id]})</span>}
                     </span>
                   </div>
                 ))}

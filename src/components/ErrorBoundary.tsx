@@ -36,14 +36,14 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-red-50 p-4">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
-            <p className="text-gray-700 mb-4">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-destructive/5 p-4">
+          <div className="bg-card p-6 rounded-lg shadow-lg max-w-lg w-full border border-destructive/20">
+            <h2 className="text-2xl font-bold text-destructive mb-4">Something went wrong</h2>
+            <p className="text-muted-foreground mb-4">
               {errorMessage}
             </p>
             <button
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+              className="bg-destructive text-destructive-foreground px-4 py-2 rounded hover:bg-destructive/90 transition-colors font-bold"
               onClick={() => window.location.reload()}
             >
               Reload Page

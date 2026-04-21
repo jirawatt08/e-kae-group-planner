@@ -75,14 +75,14 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
             <div className="grid grid-cols-2 gap-4 pt-6 border-t border-border">
               <div className="space-y-1">
                 <div className="text-[9px] sm:text-[10px] text-muted-foreground uppercase font-bold tracking-tighter opacity-80">{t('contributions')}</div>
-                <div className="text-base sm:text-lg font-bold flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+                <div className="text-base sm:text-lg font-bold flex items-center gap-1 text-success">
                   <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4" />
                   ฿{totalIn.toLocaleString()}
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[9px] sm:text-[10px] text-muted-foreground uppercase font-bold tracking-tighter opacity-80">{t('spending')}</div>
-                <div className="text-base sm:text-lg font-bold flex items-center gap-1 text-rose-600 dark:text-rose-400">
+                <div className="text-base sm:text-lg font-bold flex items-center gap-1 text-destructive">
                   <ArrowDownRight className="h-3 w-3 sm:h-4 sm:w-4" />
                   ฿{totalOut.toLocaleString()}
                 </div>
@@ -130,7 +130,7 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
           </Dialog>
 
           <Dialog open={isSpendingOpen} onOpenChange={setIsSpendingOpen}>
-            <DialogTrigger render={<Button variant="outline" className="gap-2 h-12 border-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-500/10" />}>
+            <DialogTrigger render={<Button variant="outline" className="gap-2 h-12 border-destructive/20 text-destructive hover:bg-destructive/10" />}>
               <Minus className="h-4 w-4" />
               {t('add_spending')}
             </DialogTrigger>
@@ -182,23 +182,23 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
             {/* Contributions List */}
             <div>
               <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-                <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                <ArrowUpRight className="h-4 w-4 text-success" />
                 {t('contributions')}
               </h3>
               <div className="space-y-2">
                 {contributions.length === 0 && <p className="text-sm text-muted-foreground italic text-center py-4">{t('no_contributions')}</p>}
                 {contributions.map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-xl shadow-sm hover:border-emerald-500/30 transition-colors">
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-xl shadow-sm hover:border-success/30 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-8 w-8 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0">
-                        <User className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                        <User className="h-4 w-4 text-success" />
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-bold text-foreground truncate">{item.userName}</div>
                         <div className="text-[10px] text-muted-foreground truncate">{item.description}</div>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">+฿{item.amount.toLocaleString()}</div>
+                    <div className="text-sm font-bold text-success shrink-0 ml-2">+฿{item.amount.toLocaleString()}</div>
                   </div>
                 ))}
               </div>
@@ -207,23 +207,23 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
             {/* Spending List */}
             <div>
               <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-                <ArrowDownRight className="h-4 w-4 text-rose-500" />
+                <ArrowDownRight className="h-4 w-4 text-destructive" />
                 {t('spending')}
               </h3>
               <div className="space-y-2">
                 {spendings.length === 0 && <p className="text-sm text-muted-foreground italic text-center py-4">{t('no_spending')}</p>}
                 {spendings.map(item => (
-                  <div key={item.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-xl shadow-sm hover:border-rose-500/30 transition-colors">
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-xl shadow-sm hover:border-destructive/30 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-8 w-8 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
-                        <Coins className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                      <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                        <Coins className="h-4 w-4 text-destructive" />
                       </div>
                       <div className="min-w-0">
                         <div className="text-sm font-bold text-foreground truncate">{item.description}</div>
                         <div className="text-[10px] text-muted-foreground truncate">{item.userName}</div>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-rose-600 dark:text-rose-400 shrink-0 ml-2">-฿{item.amount.toLocaleString()}</div>
+                    <div className="text-sm font-bold text-destructive shrink-0 ml-2">-฿{item.amount.toLocaleString()}</div>
                   </div>
                 ))}
               </div>

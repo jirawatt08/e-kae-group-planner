@@ -75,19 +75,19 @@ export function ActivityTab({ tripId }: { tripId: string }) {
       <div className="flex-1 overflow-y-auto space-y-8">
         {/* Snapshots Section */}
         {isOwner && snapshots.length > 0 && (
-          <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-4">
-            <h3 className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <div className="bg-warning/5 border border-warning/10 rounded-xl p-4">
+            <h3 className="text-xs font-bold text-warning uppercase tracking-widest mb-3 flex items-center gap-2">
               <RotateCcw className="h-3 w-3" />
               RESTORE POINTS
             </h3>
             <div className="space-y-2">
               {snapshots.map(snip => (
-                <div key={snip.id} className="flex items-center justify-between bg-card p-2 rounded-lg border border-amber-500/10 shadow-sm">
+                <div key={snip.id} className="flex items-center justify-between bg-card p-2 rounded-lg border border-warning/10 shadow-sm">
                   <div className="text-xs">
                     <div className="font-semibold text-foreground">{snip.name}</div>
                     <div className="text-[10px] text-muted-foreground">{safeFormat(snip.createdAt, 'MMM d, h:mm a', '')}</div>
                   </div>
-                  <Button size="sm" variant="ghost" className="h-7 text-[10px] text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-500/10 gap-1" onClick={() => handleRestore(snip)}>
+                  <Button size="sm" variant="ghost" className="h-7 text-[10px] text-warning hover:text-warning/80 hover:bg-warning/10 gap-1" onClick={() => handleRestore(snip)}>
                     <RotateCcw className="h-3 w-3" />
                     RESTORE
                   </Button>
@@ -124,14 +124,14 @@ export function ActivityTab({ tripId }: { tripId: string }) {
                 let bgColorClass = "bg-muted";
                 
                 if (actionText.includes('add') || actionText.includes('join') || actionText.includes('create')) {
-                  iconColorClass = "text-emerald-600 dark:text-emerald-400";
-                  bgColorClass = "bg-emerald-500/10";
+                  iconColorClass = "text-success";
+                  bgColorClass = "bg-success/10";
                 } else if (actionText.includes('delet') || actionText.includes('remov')) {
-                  iconColorClass = "text-rose-600 dark:text-rose-400";
-                  bgColorClass = "bg-rose-500/10";
+                  iconColorClass = "text-destructive";
+                  bgColorClass = "bg-destructive/10";
                 } else if (actionText.includes('updat') || actionText.includes('edit')) {
-                  iconColorClass = "text-blue-600 dark:text-blue-400";
-                  bgColorClass = "bg-blue-500/10";
+                  iconColorClass = "text-info";
+                  bgColorClass = "bg-info/10";
                 }
                 
                 return (

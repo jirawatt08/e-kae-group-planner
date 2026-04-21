@@ -170,9 +170,9 @@ function TripDetailContent() {
                   <p className="text-xs text-destructive/60 mt-1">{t('contact_owner') || 'Please ask the trip owner to enable it.'}</p>
                 </div>
               ) : expired ? (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mt-4">
-                  <p className="text-sm text-amber-600 dark:text-amber-500 font-medium">{t('code_expired') || 'This invite code has expired.'}</p>
-                  <p className="text-xs text-amber-600/60 dark:text-amber-500/60 mt-1">{t('ask_new_code') || 'Ask the trip owner to refresh the code.'}</p>
+                <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 mt-4">
+                  <p className="text-sm text-warning font-medium">{t('code_expired') || 'This invite code has expired.'}</p>
+                  <p className="text-xs text-warning/60 mt-1">{t('ask_new_code') || 'Ask the trip owner to refresh the code.'}</p>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground leading-relaxed px-4">
@@ -266,15 +266,14 @@ function TripDetailContent() {
                 <DataManagementDialog tripId={tripId!} tripName={trip.name} />
                 
                 {userRole === 'owner' && (
-                  <DropdownMenuItem 
-                    className="text-rose-600 gap-2 focus:text-rose-700 focus:bg-rose-50"
+                  <DropdownMenuItem
+                    className="text-destructive gap-2 focus:text-destructive/80 focus:bg-destructive/10"
                     onClick={handleDeleteTrip}
                   >
                     <Trash2 className="h-4 w-4" />
                     <span>{t('delete_trip') || 'Delete Trip'}</span>
                   </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
+                )}              </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>

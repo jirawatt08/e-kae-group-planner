@@ -219,11 +219,10 @@ export function Dashboard() {
                     <div className="flex justify-between items-start gap-4 mb-2">
                       <CardTitle className="leading-tight text-base sm:text-lg font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2">{trip.name}</CardTitle>
                       <div className={`text-[9px] shrink-0 font-black px-2 py-0.5 rounded uppercase tracking-tighter border transition-colors ${
-                        trip.ownerId === user?.uid 
-                          ? 'bg-blue-50 text-blue-600 border-blue-100 group-hover:bg-blue-100' 
-                          : 'bg-emerald-50 text-emerald-600 border-emerald-100 group-hover:bg-emerald-100'
-                      }`}>
-                        {trip.ownerId === user?.uid ? t('created') : t('joined')}
+                        trip.ownerId === user?.uid
+                          ? 'bg-info/10 text-info border-info/20 group-hover:bg-info/20' 
+                          : 'bg-success/10 text-success border-success/20 group-hover:bg-success/20'
+                      }`}>                        {trip.ownerId === user?.uid ? t('created') : t('joined')}
                       </div>
                     </div>
                     <CardDescription className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider opacity-60">

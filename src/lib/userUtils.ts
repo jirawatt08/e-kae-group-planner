@@ -24,9 +24,9 @@ export function resolveDisplayName(
  * Configuration for user roles with icons and styles.
  */
 export const roleConfig: Record<Role, { label: string; thLabel: string; icon: any; color: string; bg: string }> = {
-  owner:  { label: 'Owner',  thLabel: 'เจ้าของ',     icon: Crown,   color: 'text-amber-600',  bg: 'bg-amber-100' },
-  editor: { label: 'Editor', thLabel: 'แก้ไขได้',     icon: Edit3,   color: 'text-blue-600',   bg: 'bg-blue-100' },
-  viewer: { label: 'Viewer', thLabel: 'ดูได้อย่างเดียว', icon: Eye,     color: 'text-gray-600',   bg: 'bg-gray-100' },
+  owner:  { label: 'Owner',  thLabel: 'เจ้าของ',     icon: Crown,   color: 'text-warning',  bg: 'bg-warning/10' },
+  editor: { label: 'Editor', thLabel: 'แก้ไขได้',     icon: Edit3,   color: 'text-info',     bg: 'bg-info/10' },
+  viewer: { label: 'Viewer', thLabel: 'ดูได้อย่างเดียว', icon: Eye,     color: 'text-muted-foreground',   bg: 'bg-muted/20' },
 };
 
 /**

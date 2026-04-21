@@ -38,7 +38,7 @@ export function IdeaItem({
       <div className="flex justify-between items-start mb-2">
         <div className="flex flex-col flex-1 cursor-pointer" onClick={() => (canEdit || idea.createdBy === currentUserId) && onEdit(idea)}>
           <div className="flex items-center">
-            <Lightbulb className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
+            <Lightbulb className="h-4 w-4 text-warning mr-2 flex-shrink-0" />
             <h3 className="font-semibold text-foreground line-clamp-2">{idea.title}</h3>
           </div>
           <span 

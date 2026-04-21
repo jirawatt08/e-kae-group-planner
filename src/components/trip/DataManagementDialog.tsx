@@ -73,7 +73,7 @@ export function DataManagementDialog({ tripId, tripName }: DataManagementDialogP
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
-            <div className="bg-indigo-100 p-2 rounded-lg text-indigo-700">
+            <div className="bg-info/10 p-2 rounded-lg text-info">
               <Database className="h-5 w-5" />
             </div>
             <DialogTitle>{t('data_mgmt')}</DialogTitle>
@@ -85,12 +85,12 @@ export function DataManagementDialog({ tripId, tripName }: DataManagementDialogP
 
         <div className="space-y-6 py-6">
           {/* Export Section */}
-          <div className="p-4 border rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
+          <div className="p-4 border rounded-xl bg-muted/20 hover:bg-muted/50 transition-colors">
             <h4 className="font-bold flex items-center gap-2 mb-2">
-              <Download className="h-4 w-4 text-indigo-600" />
+              <Download className="h-4 w-4 text-info" />
               {t('export_json')}
             </h4>
-            <p className="text-xs text-gray-500 mb-4">{t('export_desc')}</p>
+            <p className="text-xs text-muted-foreground mb-4">{t('export_desc')}</p>
             <Button className="w-full gap-2" onClick={handleExport} disabled={loading}>
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
               {t('export_json')}
@@ -98,12 +98,12 @@ export function DataManagementDialog({ tripId, tripName }: DataManagementDialogP
           </div>
 
           {/* Import Section */}
-          <div className="p-4 border rounded-xl bg-gray-50/50 hover:bg-gray-50 transition-colors">
+          <div className="p-4 border rounded-xl bg-muted/20 hover:bg-muted/50 transition-colors">
             <h4 className="font-bold flex items-center gap-2 mb-2">
-              <Upload className="h-4 w-4 text-amber-600" />
+              <Upload className="h-4 w-4 text-warning" />
               {t('import_json')}
             </h4>
-            <p className="text-xs text-gray-500 mb-4">{t('import_desc')}</p>
+            <p className="text-xs text-muted-foreground mb-4">{t('import_desc')}</p>
             <div className="relative">
               <input
                 type="file"
@@ -112,7 +112,7 @@ export function DataManagementDialog({ tripId, tripName }: DataManagementDialogP
                 className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                 disabled={loading}
               />
-              <Button variant="outline" className="w-full gap-2 border-amber-200 text-amber-700 pointer-events-none">
+              <Button variant="outline" className="w-full gap-2 border-warning/30 text-warning pointer-events-none">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                 {t('import_json')}
               </Button>
@@ -120,7 +120,7 @@ export function DataManagementDialog({ tripId, tripName }: DataManagementDialogP
           </div>
         </div>
 
-        <div className="flex items-center gap-2 p-3 bg-indigo-50 rounded-lg text-[10px] text-indigo-700">
+        <div className="flex items-center gap-2 p-3 bg-info/5 rounded-lg text-[10px] text-info">
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           <span>Note: Exporting data will not include member emails or private account information. Relationships are preserved via display names.</span>
         </div>
