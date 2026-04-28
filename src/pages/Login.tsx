@@ -7,10 +7,11 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
 
 export function Login() {
-  const { user, signIn } = useAuth();
+  const { user, signIn, testSignIn } = useAuth();
   const { t } = useLanguage();
   const location = useLocation();
   const from = (location.state as any)?.from || '/';
+  const isLocal = window.location.hostname === 'localhost';
 
   if (user) {
     return <Navigate to={from} />;
@@ -27,10 +28,15 @@ export function Login() {
           <CardTitle className="text-3xl font-bold">{t('login_title')}</CardTitle>
           <CardDescription>{t('login_desc')}</CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-center">
+        <CardContent className="flex flex-col gap-3 justify-center">
           <Button onClick={signIn} size="lg" className="w-full">
             {t('sign_in')}
           </Button>
+          {isLocal && (
+            <Button onClick={testSignIn} variant="outline" size="lg" className="w-full border-dashed" id="test-login">
+              Test Login (Emulator)
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>

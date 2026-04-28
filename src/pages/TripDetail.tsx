@@ -79,11 +79,7 @@ function TripDetailContent() {
 
     setIsJoining(true);
     try {
-      const tripRef = doc(db, 'trips', trip.id);
-      await updateDoc(tripRef, {
-        [`members.${user.uid}`]: 'editor',
-        updatedAt: serverTimestamp()
-      });
+      await tripService.joinTripByCode(trip.id, user.uid, trip.members);
       toast.success(t('joined_trip') || 'Successfully joined the trip!');
     } catch (err) {
       console.error(err);

@@ -54,16 +54,7 @@ export function Dashboard() {
     if (!user || !newTripName.trim()) return;
 
     try {
-      const docRef = await addDoc(collection(db, 'trips'), {
-        name: newTripName,
-        description: '',
-        ownerId: user.uid,
-        members: {
-          [user.uid]: 'owner'
-        },
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
+      const docRef = await tripService.createTrip(user.uid, newTripName);
       setIsCreateOpen(false);
       setNewTripName('');
       navigate(`/trip/${docRef.id}`);

@@ -126,7 +126,7 @@ export function MembersTab({ tripId, tripMembers }: { tripId: string; tripMember
       await tripService.toggleJoinCode(tripId, checked);
       toast.success(t('update_success') || 'Settings updated');
     } catch (err: any) {
-      console.error(err);
+      console.error('Toggle failed', err);
       toast.error(`${t('update_failed') || 'Failed to update settings'}: ${err.message || ''}`);
     }
   };

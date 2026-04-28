@@ -57,13 +57,14 @@ export const dataService = {
    * Imports a trip bundle into a new trip owned by the current user.
    */
   importTripData: async (userId: string, bundle: TripBundle) => {
-    // 1. Create the new trip
+    // 1. Create the new trip using centralized service logic (simulated here for import)
     const tripRef = await addDoc(collection(db, 'trips'), {
       name: `${bundle.trip.name} (Imported)`,
       description: bundle.trip.description,
       ownerId: userId,
-      inviteCode: '', // Will be generated if enabled
+      inviteCode: '', // Disabled by default on import
       isJoinEnabled: false,
+      lastCodeGeneratedAt: serverTimestamp(),
       members: {
         [userId]: 'owner'
       },

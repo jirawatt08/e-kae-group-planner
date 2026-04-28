@@ -2,6 +2,13 @@
   "emulators": {
     "firestore": {
       "port": 8080
+    },
+    "auth": {
+      "port": 9099
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
     }
   },
   "hosting": {
@@ -19,10 +26,6 @@
     ]
   },
   "firestore": [
-    {
-      "database": "(default)",
-      "rules": "firestore.rules"
-    },
     {
       "database": "ai-studio-ee014588-0ed1-454e-a153-6e4fdf2a5269",
       "rules": "firestore.rules"

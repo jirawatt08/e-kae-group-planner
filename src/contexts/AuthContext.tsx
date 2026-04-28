@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, signInAnonymously } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase';
 
@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: () => Promise<void>;
+  testSignIn: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (!userSnap.exists()) {
             await setDoc(userRef, {
               uid: currentUser.uid,
-              displayName: currentUser.displayName || 'Unknown User',
+              displayName: currentUser.displayName || 'Test User',
               email: currentUser.email || '',
               photoURL: currentUser.photoURL || '',
               createdAt: serverTimestamp()
@@ -51,6 +52,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const testSignIn = async () => {
+    try {
+      // Use anonymous sign-in for emulator testing
+      await signInAnonymously(auth);
+    } catch (error) {
+      console.error('Error signing in anonymously', error);
+    }
+  };
+
   const signOut = async () => {
     try {
       await auth.signOut();
@@ -60,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, testSignIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

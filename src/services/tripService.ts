@@ -1,5 +1,5 @@
-import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteField, deleteDoc, query, where, getDocs, limit, getDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, deleteField, deleteDoc, query, where, getDocs, limit, getDoc, FieldValue } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 import { activityService } from './activityService';
 import { Role, Trip } from '../types';
 
@@ -13,10 +13,14 @@ const generateInviteCode = () => {
 };
 
 export const tripService = {
-  createTrip: async (userId: string, name: string) => {
+  /**
+   * CENTRALIZED: The ONLY way to create a new trip in the system.
+   * Ensures the document always matches the required security rules schema.
+   */
+  createTrip: async (userId: string, name: string, description: string = '') => {
     return await addDoc(collection(db, 'trips'), {
       name,
-      description: '',
+      description,
       ownerId: userId,
       inviteCode: generateInviteCode(),
       isJoinEnabled: true,
@@ -27,6 +31,22 @@ export const tripService = {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
+  },
+
+  /**
+   * CENTRALIZED: The ONLY way for a user to join a trip via code.
+   * Handles both the Firestore write and the activity logging.
+   */
+  joinTripByCode: async (tripId: string, userId: string, members: Record<string, string>) => {
+    const tripRef = doc(db, 'trips', tripId);
+    
+    // Schema check for security rules (must add the user to the existing members map)
+    await updateDoc(tripRef, {
+      [`members.${userId}`]: 'editor',
+      updatedAt: serverTimestamp()
+    });
+    
+    await activityService.logActivity(tripId, 'Joined trip', `User joined via shared link/code`);
   },
 
   joinTripAsEditor: async (tripId: string, userId: string) => {
@@ -113,7 +133,18 @@ export const tripService = {
       }
     }
 
-    await updateDoc(tripRef, updates);
-    await activityService.logActivity(tripId, 'Security Update', `Join by code ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    try {
+      await updateDoc(tripRef, updates);
+      await activityService.logActivity(tripId, 'Security Update', `Join by code ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    } catch (err: any) {
+      console.error('FIREBASE_RAW_ERROR:', {
+        code: err.code,
+        message: err.message,
+        name: err.name,
+        stack: err.stack,
+        payload: updates
+      });
+      throw err;
+    }
   }
 };
