@@ -20,15 +20,7 @@ service cloud.firestore {
       );
     }
 
-    // Direct check for Editor/Member
-    function canEdit(data) {
-      let role = getRole(data);
-      return isSignedIn() && (
-        data.get('ownerId', '') == request.auth.uid || 
-        role == 'owner' || 
-        role == 'editor'
-      );
-    }
+
 
     match /trips/{tripId} {
       // READ: get any trip by ID (needed for join flow via direct links)
@@ -71,7 +63,8 @@ service cloud.firestore {
     
     // Global profile permissions
     match /users/{userId} {
-      allow read, write: if isSignedIn() && request.auth.uid == userId;
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
     }
     match /profiles/{userId} {
       allow read, write: if isSignedIn() && request.auth.uid == userId;
