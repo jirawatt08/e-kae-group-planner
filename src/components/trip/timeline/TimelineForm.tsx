@@ -4,6 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Plus, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { TimezoneSelector } from './TimezoneSelector';
 
 interface TimelineFormProps {
   data: any;
@@ -57,16 +59,68 @@ export function TimelineForm({
           required 
         />
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="startTime">{t('time')}</Label>
-        <Input 
-          id="startTime" 
-          type="datetime-local" 
-          value={data.startTime} 
-          onChange={e => setState((p: any) => ({...p, startTime: e.target.value}))} 
-          required 
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="startTime">{t('time')}</Label>
+          <Input 
+            id="startTime" 
+            type="datetime-local" 
+            value={data.startTime} 
+            onChange={e => setState((p: any) => ({...p, startTime: e.target.value}))} 
+            required 
+            className="h-10 text-sm"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="timezone">{t('timezone') || 'Timezone'}</Label>
+          <TimezoneSelector 
+            value={data.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
+            onChange={(tz) => setState((p: any) => ({...p, timezone: tz}))}
+          />
+        </div>
       </div>
+
+      <div className="space-y-2">
+        <Label>{t('category') || 'Category'}</Label>
+        <div className="flex gap-4 p-2 bg-muted/30 rounded-md border border-border">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="radio" 
+              name="category"
+              value="activity" 
+              checked={data.category === 'activity' || !data.category} 
+              onChange={e => setState((p: any) => ({...p, category: e.target.value}))} 
+              className="accent-primary"
+            />
+            <span className="text-sm font-medium">Activity</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="radio" 
+              name="category"
+              value="booking" 
+              checked={data.category === 'booking'} 
+              onChange={e => setState((p: any) => ({...p, category: e.target.value}))} 
+              className="accent-primary"
+            />
+            <span className="text-sm font-medium">Booking / Milestone</span>
+          </label>
+        </div>
+      </div>
+
+      {data.category === 'booking' && (
+        <div className="space-y-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-md">
+          <Label className="text-amber-700 dark:text-amber-400">Estimated Cost (฿)</Label>
+          <Input 
+            type="number"
+            placeholder="0.00"
+            value={data.estimatedCost || ''} 
+            onChange={e => setState((p: any) => ({...p, estimatedCost: parseFloat(e.target.value) || undefined}))} 
+            className="border-amber-500/30 focus-visible:ring-amber-500"
+          />
+        </div>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="location">{t('location')}</Label>
         <Input 

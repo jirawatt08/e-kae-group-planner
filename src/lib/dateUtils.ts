@@ -1,4 +1,5 @@
 import { format as dateFnsFormat, isValid } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 /**
  * Safely converts a value (Firestore Timestamp, Date, string, or number) to a Date object.
@@ -25,10 +26,20 @@ export function toDate(value: any): Date | null {
 /**
  * Safely formats a date-like value.
  * Returns a fallback string if the date is invalid.
+ * If timeZone is provided, formats the date in that specific timezone.
  */
-export function safeFormat(value: any, formatStr: string, fallback: string = ''): string {
+export function safeFormat(value: any, formatStr: string, fallback: string = '', timeZone?: string): string {
   const date = toDate(value);
   if (!date) return fallback;
+  
+  if (timeZone) {
+    try {
+      return formatInTimeZone(date, timeZone, formatStr);
+    } catch (e) {
+      console.warn(`Invalid timezone: ${timeZone}`, e);
+    }
+  }
+  
   return dateFnsFormat(date, formatStr);
 }
 
@@ -50,17 +61,21 @@ export function getDayNumber(dateValue: any, firstDateValue: any): number {
   return diffDays + 1;
 }
 
+export function getStringHue(str: string): number {
+  if (!str) return 210;
+  
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  return Math.abs(hash % 360);
+}
+
 /**
  * Generates a stable HSL color based on a date string.
  */
 export function getDayColor(dateStr: string): string {
-  if (!dateStr) return 'hsl(210, 100%, 50%)';
-  
-  let hash = 0;
-  for (let i = 0; i < dateStr.length; i++) {
-    hash = dateStr.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  
-  const hue = Math.abs(hash % 360);
+  const hue = getStringHue(dateStr);
   return `hsl(${hue}, 70%, 45%)`;
 }

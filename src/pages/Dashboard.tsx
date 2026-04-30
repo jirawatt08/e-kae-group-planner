@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Plus, LogOut, Link2, Users } from 'lucide-react';
+import { TimezoneSelector } from '../components/trip/timeline/TimezoneSelector';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
 import { toast } from 'sonner';
@@ -24,6 +25,8 @@ export function Dashboard() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
   const [newTripName, setNewTripName] = useState('');
+  const [newTripTimezone, setNewTripTimezone] = useState(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [newTripBudget, setNewTripBudget] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -54,9 +57,16 @@ export function Dashboard() {
     if (!user || !newTripName.trim()) return;
 
     try {
-      const docRef = await tripService.createTrip(user.uid, newTripName);
+      const docRef = await tripService.createTrip(
+        user.uid, 
+        newTripName, 
+        '', 
+        newTripTimezone || undefined, 
+        parseFloat(newTripBudget) || undefined
+      );
       setIsCreateOpen(false);
       setNewTripName('');
+      setNewTripBudget('');
       navigate(`/trip/${docRef.id}`);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'trips');
@@ -137,7 +147,24 @@ export function Dashboard() {
                       required
                     />
                   </div>
-                  <div className="flex justify-end">
+                  <div className="space-y-2">
+                    <Label htmlFor="timezone">{t('default_timezone') || 'Default Timezone'}</Label>
+                    <TimezoneSelector 
+                      value={newTripTimezone}
+                      onChange={setNewTripTimezone}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="budget">{t('budget_goal') || 'Total Budget Goal'} (฿)</Label>
+                    <Input
+                      id="budget"
+                      type="number"
+                      value={newTripBudget}
+                      onChange={(e) => setNewTripBudget(e.target.value)}
+                      placeholder="e.g. 50000"
+                    />
+                  </div>
+                  <div className="flex justify-end pt-2">
                     <Button type="submit" className="w-full sm:w-auto">{t('create_trip')}</Button>
                   </div>
                 </form>

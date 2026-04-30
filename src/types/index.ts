@@ -18,6 +18,8 @@ export interface Trip {
   members: Record<string, Role>;
   createdAt: any; // Firestore Timestamp
   updatedAt: any;
+  defaultTimezone?: string;
+  totalBudgetGoal?: number;
 }
 
 export interface Expense {
@@ -66,6 +68,10 @@ export interface TimelineEvent {
   createdBy: string;
   createdAt: any;
   updatedAt: any;
+  category?: 'activity' | 'booking' | 'milestone';
+  estimatedCost?: number;
+  isCompleted?: boolean;
+  timezone?: string;
 }
 
 export interface Idea {

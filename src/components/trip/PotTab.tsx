@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }) {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { potTransactions, memberProfiles, loading: dataLoading } = useTripData();
+  const { potTransactions, timeline, trip, memberProfiles, loading: dataLoading } = useTripData();
   const [loading, setLoading] = useState(false);
   
   const [isContributionOpen, setIsContributionOpen] = useState(false);
@@ -27,12 +27,23 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
     description: ''
   });
 
-  const contributions = potTransactions.filter(t => t.type === 'contribution');
-  const spendings = potTransactions.filter(t => t.type === 'spending');
-  
-  const totalIn = contributions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  const totalOut = spendings.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  const balance = totalIn - totalOut;
+  const { totalIn, totalOut, balance, totalGoal, savingsProgress, totalEstimatedCost } = React.useMemo(() => {
+    const inT = potTransactions.filter(t => t.type === 'contribution');
+    const outT = potTransactions.filter(t => t.type === 'spending');
+    const tin = inT.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const tout = outT.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const bal = tin - tout;
+
+    const estimated = timeline
+      .filter((event: any) => event.category === 'booking' && event.estimatedCost)
+      .reduce((sum: number, event: any) => sum + (event.estimatedCost || 0), 0);
+    
+    const tripGoal = trip?.totalBudgetGoal || 0;
+    const goal = tripGoal + estimated;
+    const progress = goal > 0 ? Math.min(100, Math.max(0, (bal / goal) * 100)) : 0;
+
+    return { totalIn: tin, totalOut: tout, balance: bal, totalGoal: goal, savingsProgress: progress, totalEstimatedCost: estimated };
+  }, [potTransactions, timeline, trip]);
 
   const handleSubmit = async (type: 'contribution' | 'spending') => {
     const amountNum = parseFloat(formData.amount);
@@ -60,6 +71,26 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
       {dataLoading ? (
         <Skeleton className="h-48 w-full rounded-2xl" />
       ) : (
+        <>
+          {totalGoal > 0 && (
+            <Card className="bg-card text-card-foreground border border-border shadow-sm">
+              <CardContent className="pt-4 pb-4 px-5 sm:px-8">
+                 <div className="flex justify-between items-center mb-2">
+                   <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">{t('savings_goal') || 'Savings Goal'}</span>
+                   <span className="text-xs sm:text-sm font-bold text-foreground">฿{balance.toLocaleString()} / ฿{totalGoal.toLocaleString()}</span>
+                 </div>
+                 <div className="w-full bg-muted/50 rounded-full h-2.5 overflow-hidden">
+                   <div className="bg-primary h-2.5 rounded-full transition-all duration-500" style={{ width: `${savingsProgress}%` }}></div>
+                 </div>
+                 {totalEstimatedCost > 0 && (
+                   <p className="text-[10px] text-muted-foreground mt-2 italic opacity-80">
+                     * Includes ฿{totalEstimatedCost.toLocaleString()} from booking milestones.
+                   </p>
+                 )}
+              </CardContent>
+            </Card>
+          )}
+
         <Card className="bg-card text-card-foreground border-2 border-primary/10 shadow-sm overflow-hidden bg-linear-to-br from-card to-muted/20">
           <CardContent className="pt-6 sm:pt-8 pb-6 sm:pb-8 px-5 sm:px-8">
             <div className="flex justify-between items-center mb-6">
@@ -90,6 +121,7 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
             </div>
           </CardContent>
         </Card>
+        </>
       )}
 
       {/* Action Buttons */}
@@ -186,8 +218,8 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
                 {t('contributions')}
               </h3>
               <div className="space-y-2">
-                {contributions.length === 0 && <p className="text-sm text-muted-foreground italic text-center py-4">{t('no_contributions')}</p>}
-                {contributions.map(item => (
+                {potTransactions.filter(t => t.type === 'contribution').length === 0 && <p className="text-sm text-muted-foreground italic text-center py-4">{t('no_contributions')}</p>}
+                {potTransactions.filter(t => t.type === 'contribution').map(item => (
                   <div key={item.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-xl shadow-sm hover:border-success/30 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center shrink-0">
@@ -211,8 +243,8 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
                 {t('spending')}
               </h3>
               <div className="space-y-2">
-                {spendings.length === 0 && <p className="text-sm text-muted-foreground italic text-center py-4">{t('no_spending')}</p>}
-                {spendings.map(item => (
+                {potTransactions.filter(t => t.type === 'spending').length === 0 && <p className="text-sm text-muted-foreground italic text-center py-4">{t('no_spending')}</p>}
+                {potTransactions.filter(t => t.type === 'spending').map(item => (
                   <div key={item.id} className="flex items-center justify-between p-3 bg-card border border-border rounded-xl shadow-sm hover:border-destructive/30 transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">

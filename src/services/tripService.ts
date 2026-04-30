@@ -17,8 +17,8 @@ export const tripService = {
    * CENTRALIZED: The ONLY way to create a new trip in the system.
    * Ensures the document always matches the required security rules schema.
    */
-  createTrip: async (userId: string, name: string, description: string = '') => {
-    return await addDoc(collection(db, 'trips'), {
+  createTrip: async (userId: string, name: string, description: string = '', defaultTimezone?: string, totalBudgetGoal?: number) => {
+    const data: any = {
       name,
       description,
       ownerId: userId,
@@ -30,7 +30,10 @@ export const tripService = {
       },
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
-    });
+    };
+    if (defaultTimezone) data.defaultTimezone = defaultTimezone;
+    if (totalBudgetGoal) data.totalBudgetGoal = totalBudgetGoal;
+    return await addDoc(collection(db, 'trips'), data);
   },
 
   /**

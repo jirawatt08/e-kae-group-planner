@@ -19,6 +19,9 @@ interface TimelineItemProps {
   onEdit: (event: TimelineEvent) => void;
   onDelete: (eventId: string) => void;
   isDayView?: boolean;
+  themeColor?: string;
+  /** When true, renders a minimal single-line summary (for collapsed timezone view) */
+  compact?: boolean;
 }
 
 export function TimelineItem({
@@ -27,7 +30,9 @@ export function TimelineItem({
   canEdit,
   isDayView,
   onEdit,
-  onDelete
+  onDelete,
+  themeColor,
+  compact = false
 }: TimelineItemProps) {
   const { user } = useAuth();
   const { memberProfiles } = useTripData();
@@ -37,6 +42,7 @@ export function TimelineItem({
   const userStyles = getUserColorStyles(event.createdBy);
   const createdByName = resolveDisplayName(event.createdBy, user?.uid, memberProfiles, t('you'));
   const checklist = event.checklist || [];
+  const timezone = event.timezone;
 
   const toggleChecklistItem = async (itemId: string) => {
     if (!canEdit) return;
@@ -53,46 +59,85 @@ export function TimelineItem({
   };
 
   const completedCount = checklist.filter((i: ChecklistItem) => i.checked).length;
-    
+
+  // ── Compact mode: single-line summary for collapsed timezone blocks ──
+  if (compact) {
+    return (
+      <button
+        type="button"
+        onClick={() => onEdit(event)}
+        className={`w-full text-left flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors hover:bg-muted/50 ${isPast ? 'opacity-60' : ''}`}
+      >
+        <div
+          className="w-2 h-2 rounded-full shrink-0"
+          style={userStyles.bg}
+        />
+        <span className="font-medium text-foreground truncate">{event.title}</span>
+        <span className="text-xs text-muted-foreground shrink-0 ml-auto">
+          {safeFormat(event.startTime, 'h:mm a', 'Pending', timezone)}
+        </span>
+        {event.location && (
+          <span className="hidden sm:flex items-center text-xs text-muted-foreground shrink-0">
+            <MapPin className="h-3 w-3 mr-0.5" />
+            <span className="truncate max-w-[100px]">{event.location}</span>
+          </span>
+        )}
+      </button>
+    );
+  }
+
+  // ── Full mode: standard timeline card ──
   return (
     <div className={`relative pl-6 md:pl-8 ${isPast ? 'opacity-75' : ''}`}>
-      {/* Timeline dot */}
-      <div 
-        className={`absolute w-3 h-3 md:w-4 md:h-4 rounded-full -left-[8px] md:-left-[9px] top-1.5 border-2 md:border-4 border-background shadow-sm transition-colors ${isPast ? 'opacity-50' : ''}`} 
-        style={userStyles.bg} 
+      {/* Timeline dot – clickable to edit */}
+      <button 
+        type="button"
+        className={`absolute w-3 h-3 md:w-4 md:h-4 rounded-full -left-[7px] md:-left-[9px] top-5 border-2 border-background shadow-sm transition-all hover:scale-125 z-10 cursor-pointer ${isPast ? 'opacity-50' : 'hover:ring-2 hover:ring-offset-1 hover:ring-primary/50'}`} 
+        style={userStyles.bg}
+        onClick={() => onEdit(event)}
+        aria-label={`Edit ${event.title}`}
       />
 
-      <div className="bg-card border border-border rounded-lg p-4 shadow-sm group hover:shadow-md transition-shadow">
+      <div 
+        className="bg-card border border-border rounded-lg p-4 shadow-sm group hover:shadow-md transition-shadow"
+        style={themeColor ? { borderLeftWidth: '3px', borderLeftColor: themeColor } : {}}
+      >
         <div className="flex justify-between items-start text-foreground">
-          <div className="flex-1 cursor-pointer" onClick={() => onEdit(event)}>
-            <div className="flex justify-between items-start">
-              <h3 className="font-semibold text-lg text-foreground">{event.title}</h3>
+          <div className="flex-1 cursor-pointer min-w-0" onClick={() => onEdit(event)}>
+            <div className="flex justify-between items-start gap-2">
+              <h3 className="font-semibold text-base sm:text-lg text-foreground truncate">{event.title}</h3>
               <span 
-                className="text-[10px] font-semibold px-1.5 py-0.5 rounded border transition-colors"
+                className="text-[10px] font-semibold px-1.5 py-0.5 rounded border transition-colors shrink-0"
                 style={userStyles.badge}
               >
                 {t('by') || 'by'} {createdByName}
               </span>
             </div>
-            <div className="flex items-center text-sm text-muted-foreground mt-1 space-x-2 md:space-x-4">
+            <div className="flex flex-wrap items-center text-sm text-muted-foreground mt-1 gap-x-3 gap-y-1">
               <span className="flex items-center">
-                <Clock className="h-3.5 w-3.5 mr-1" />
-                {safeFormat(event.startTime, 'h:mm a', 'Pending')}
+                <Clock className="h-3.5 w-3.5 mr-1 shrink-0" />
+                {safeFormat(event.startTime, 'h:mm a', 'Pending', timezone)}
                 {!isDayView && (
                   <span className="ml-1 text-xs text-muted-foreground/60">
-                    ({safeFormat(event.startTime, 'MMM d')})
+                    ({safeFormat(event.startTime, 'MMM d', '', timezone)})
                   </span>
                 )}
               </span>
+              {event.category === 'booking' && (
+                <span className="flex items-center text-amber-600 dark:text-amber-400 font-medium">
+                  <span className="text-[10px] uppercase border border-amber-500/30 px-1.5 py-0.5 rounded mr-1">Booking</span>
+                  {event.estimatedCost ? `฿${event.estimatedCost.toLocaleString()}` : ''}
+                </span>
+              )}
               {event.location && (
-                <span className="flex items-center">
-                  <MapPin className="h-3.5 w-3.5 mr-1" />
+                <span className="flex items-center min-w-0">
+                  <MapPin className="h-3.5 w-3.5 mr-1 shrink-0" />
                   {event.mapLink ? (
-                    <a href={event.mapLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>
+                    <a href={event.mapLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate" onClick={(e) => e.stopPropagation()}>
                       {event.location}
                     </a>
                   ) : (
-                    event.location
+                    <span className="truncate">{event.location}</span>
                   )}
                 </span>
               )}
@@ -100,7 +145,7 @@ export function TimelineItem({
           </div>
           
           {canEdit && (
-            <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-primary" onClick={() => onEdit(event)}>
                 <Edit3 className="h-4 w-4" />
               </Button>

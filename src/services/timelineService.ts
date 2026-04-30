@@ -10,6 +10,9 @@ export interface TimelineEventInput {
   location: string;
   mapLink: string;
   checklist?: { id: string; text: string; checked: boolean }[];
+  category?: 'activity' | 'booking' | 'milestone';
+  estimatedCost?: number;
+  timezone?: string;
 }
 
 export const timelineService = {
@@ -26,6 +29,9 @@ export const timelineService = {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
+    if (data.category) eventData.category = data.category;
+    if (data.estimatedCost !== undefined) eventData.estimatedCost = data.estimatedCost;
+    if (data.timezone) eventData.timezone = data.timezone;
 
     if (data.endTime) {
       eventData.endTime = new Date(data.endTime);
@@ -47,6 +53,9 @@ export const timelineService = {
       checklist: (data.checklist || []).filter(i => i.text.trim()),
       updatedAt: serverTimestamp()
     };
+    if (data.category) eventData.category = data.category;
+    if (data.estimatedCost !== undefined) eventData.estimatedCost = data.estimatedCost;
+    if (data.timezone) eventData.timezone = data.timezone;
 
     if (data.endTime) {
       eventData.endTime = new Date(data.endTime);
