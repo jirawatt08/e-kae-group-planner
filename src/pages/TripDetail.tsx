@@ -17,9 +17,10 @@ import { ActivityTab } from '../components/trip/ActivityTab';
 import { MembersTab } from '../components/trip/MembersTab';
 import { PotTab } from '../components/trip/PotTab';
 import { DataManagementDialog } from '../components/trip/DataManagementDialog';
+import { TripSettingsDialog } from '../components/trip/TripSettingsDialog';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { ThemeSwitcher } from '../components/ThemeSwitcher';
-import { Lock, Link2, Loader2, MoreVertical, Settings } from 'lucide-react';
+import { Lock, Link2, Loader2, MoreVertical, Settings, Database, Check } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -31,6 +32,8 @@ function TripDetailContent() {
   const { trip, loading } = useTripData();
   const [inputCode, setInputCode] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isDataMgmtOpen, setIsDataMgmtOpen] = useState(false);
 
   // Auto-fill code from URL query param
   useEffect(() => {
@@ -259,7 +262,17 @@ function TripDetailContent() {
                 
                 <div className="sm:hidden block border-t my-1" />
                 
-                <DataManagementDialog tripId={tripId!} tripName={trip.name} />
+                <DropdownMenuItem onClick={() => setIsDataMgmtOpen(true)} className="gap-2">
+                  <Database className="h-4 w-4" />
+                  <span>{t('data_mgmt') || 'Data Management'}</span>
+                </DropdownMenuItem>
+                
+                {canEdit && (
+                  <DropdownMenuItem onClick={() => setIsSettingsOpen(true)} className="gap-2">
+                    <Settings className="h-4 w-4" />
+                    <span>{t('trip_settings') || 'Trip Settings'}</span>
+                  </DropdownMenuItem>
+                )}
                 
                 {userRole === 'owner' && (
                   <DropdownMenuItem
@@ -310,6 +323,20 @@ function TripDetailContent() {
           </div>
         </Tabs>
       </main>
+
+      {canEdit && (
+        <TripSettingsDialog 
+          open={isSettingsOpen} 
+          onOpenChange={setIsSettingsOpen} 
+        />
+      )}
+
+      <DataManagementDialog 
+        tripId={tripId!} 
+        tripName={trip?.name || ''} 
+        open={isDataMgmtOpen} 
+        onOpenChange={setIsDataMgmtOpen} 
+      />
     </div>
   );
 }

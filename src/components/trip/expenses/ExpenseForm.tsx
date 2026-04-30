@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Plus, X, UserPlus } from 'lucide-react';
+import { useFormatters } from '../../../hooks/useFormatters';
 
 interface ExpenseFormProps {
   data: any;
@@ -34,6 +35,7 @@ export function ExpenseForm({
   const { t } = useLanguage();
   const guestNames: string[] = data.guestNames || [];
   const extraDetails: any[] = data.extraDetails || [];
+  const { formatCurrency, currency } = useFormatters();
 
   // All people involved = members + guests
   const allPeople = [...memberIds, ...guestNames.map((_: string, i: number) => `guest:${i}`)];
@@ -137,7 +139,7 @@ export function ExpenseForm({
       </div>
 
       <div className="space-y-2">
-        <Label>{t('amount')} (฿)</Label>
+        <Label>{t('amount')} ({currency})</Label>
         <Input type="number" step="0.01" min="0" value={data.amount} onChange={e => setState((p: any) => ({ ...p, amount: e.target.value }))} required />
       </div>
 
@@ -182,7 +184,7 @@ export function ExpenseForm({
                 <span className="flex-1 text-sm truncate">{displayName(uid, currentUserId, memberProfiles, t('me'))}</span>
                 {isChecked && (
                   <div className="flex items-center gap-1">
-                    <span className="text-xs text-muted-foreground">฿</span>
+                    <span className="text-xs text-muted-foreground">{currency}</span>
                     <Input type="number" step="0.01" min="0" className="w-24 h-8" placeholder="Amount"
                       value={data.paidAmounts?.[uid] || ''}
                       onChange={e => setState((p: any) => ({ ...p, paidAmounts: { ...(p.paidAmounts || {}), [uid]: e.target.value } }))} />
@@ -208,7 +210,7 @@ export function ExpenseForm({
                 onChange={e => updateExtraDetail(detail.id, 'label', e.target.value)}
               />
               <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground">฿</span>
+                <span className="text-xs text-muted-foreground">{currency}</span>
                 <Input type="number" step="0.01" min="0" className="w-20 h-8 text-sm" placeholder="0"
                   value={detail.amount}
                   onChange={e => updateExtraDetail(detail.id, 'amount', e.target.value)}
@@ -247,15 +249,15 @@ export function ExpenseForm({
             <div className="mt-3 p-3 bg-card rounded-md border text-sm">
               <p className="font-medium text-foreground mb-2">{t('preview') || '💡 Preview'}</p>
               <p className="text-xs text-muted-foreground mb-1">
-                {t('shared_base') || 'Shared base'}: ฿{sharedBase.toLocaleString()} ÷ {splitMembers.length} = ฿{perPerson.toLocaleString(undefined, { maximumFractionDigits: 2 })} {t('each') || 'each'}
+                {t('shared_base') || 'Shared base'}: {formatCurrency(sharedBase)} ÷ {splitMembers.length} = {formatCurrency(perPerson)} {t('each') || 'each'}
               </p>
               <div className="space-y-1">
                 {splitMembers.map((id: string) => (
                   <div key={id} className="flex justify-between">
                     <span className="text-muted-foreground">{getPersonName(id)}</span>
                     <span className="font-medium">
-                      ฿{(shares[id] || perPerson)?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                      {(computedExtras[id] || 0) > 0 && <span className="text-warning text-xs ml-1">(+฿{computedExtras[id]})</span>}
+                      {formatCurrency(shares[id] || perPerson)}
+                      {(computedExtras[id] || 0) > 0 && <span className="text-warning text-xs ml-1">(+{formatCurrency(computedExtras[id])})</span>}
                     </span>
                   </div>
                 ))}

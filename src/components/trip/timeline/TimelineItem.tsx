@@ -10,6 +10,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useTripData } from '../../../contexts/TripDataContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
+import { useFormatters } from '../../../hooks/useFormatters';
 
 interface TimelineItemProps {
   key?: React.Key;
@@ -43,6 +44,7 @@ export function TimelineItem({
   const createdByName = resolveDisplayName(event.createdBy, user?.uid, memberProfiles, t('you'));
   const checklist = event.checklist || [];
   const timezone = event.timezone;
+  const { formatTime, formatCurrency } = useFormatters();
 
   const toggleChecklistItem = async (itemId: string) => {
     if (!canEdit) return;
@@ -74,7 +76,7 @@ export function TimelineItem({
         />
         <span className="font-medium text-foreground truncate">{event.title}</span>
         <span className="text-xs text-muted-foreground shrink-0 ml-auto">
-          {safeFormat(event.startTime, 'h:mm a', 'Pending', timezone)}
+          {formatTime(event.startTime, timezone)}
         </span>
         {event.location && (
           <span className="hidden sm:flex items-center text-xs text-muted-foreground shrink-0">
@@ -116,7 +118,7 @@ export function TimelineItem({
             <div className="flex flex-wrap items-center text-sm text-muted-foreground mt-1 gap-x-3 gap-y-1">
               <span className="flex items-center">
                 <Clock className="h-3.5 w-3.5 mr-1 shrink-0" />
-                {safeFormat(event.startTime, 'h:mm a', 'Pending', timezone)}
+                {formatTime(event.startTime, timezone)}
                 {!isDayView && (
                   <span className="ml-1 text-xs text-muted-foreground/60">
                     ({safeFormat(event.startTime, 'MMM d', '', timezone)})
@@ -126,7 +128,7 @@ export function TimelineItem({
               {event.category === 'booking' && (
                 <span className="flex items-center text-amber-600 dark:text-amber-400 font-medium">
                   <span className="text-[10px] uppercase border border-amber-500/30 px-1.5 py-0.5 rounded mr-1">Booking</span>
-                  {event.estimatedCost ? `฿${event.estimatedCost.toLocaleString()}` : ''}
+                  {event.estimatedCost ? formatCurrency(event.estimatedCost) : ''}
                 </span>
               )}
               {event.location && (

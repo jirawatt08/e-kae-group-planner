@@ -4,6 +4,7 @@ import { useTripData } from '../../contexts/TripDataContext';
 import { safeFormat } from '../../lib/dateUtils';
 import { resolveDisplayName, getUserColorStyles } from '../../lib/userUtils';
 import { useAuth } from '../../contexts/AuthContext';
+import { useFormatters } from '../../hooks/useFormatters';
 import { dataService } from '../../services/dataService';
 import { History, Camera, RotateCcw, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ export function ActivityTab({ tripId }: { tripId: string }) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { activities, trip, memberProfiles, loading: dataLoading } = useTripData();
+  const { formatTime } = useFormatters();
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -85,7 +87,7 @@ export function ActivityTab({ tripId }: { tripId: string }) {
                 <div key={snip.id} className="flex items-center justify-between bg-card p-2 rounded-lg border border-warning/10 shadow-sm">
                   <div className="text-xs">
                     <div className="font-semibold text-foreground">{snip.name}</div>
-                    <div className="text-[10px] text-muted-foreground">{safeFormat(snip.createdAt, 'MMM d, h:mm a', '')}</div>
+                    <div className="text-[10px] text-muted-foreground">{safeFormat(snip.createdAt, 'MMM d, ')} {formatTime(snip.createdAt)}</div>
                   </div>
                   <Button size="sm" variant="ghost" className="h-7 text-[10px] text-warning hover:text-warning/80 hover:bg-warning/10 gap-1" onClick={() => handleRestore(snip)}>
                     <RotateCcw className="h-3 w-3" />
@@ -150,7 +152,7 @@ export function ActivityTab({ tripId }: { tripId: string }) {
                       {activity.details && <span className="text-muted-foreground text-xs block mt-0.5 opacity-80">{activity.details}</span>}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      {safeFormat(activity.createdAt, 'MMM d, h:mm a', t('just_now'))}
+                      {safeFormat(activity.createdAt, 'MMM d, ')} {formatTime(activity.createdAt)}
                     </p>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import { Receipt, Plus, Trash2, UserPlus } from 'lucide-react';
 import { Expense, ExtraDetail } from '../../../types';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { getUserColorStyles } from '../../../lib/userUtils';
+import { useFormatters } from '../../../hooks/useFormatters';
 
 interface ExpenseItemProps {
   key?: React.Key;
@@ -35,6 +36,7 @@ export function ExpenseItem({
   const { t } = useLanguage();
   const guestNames: string[] = expense.guestNames || [];
   const extraDetails: ExtraDetail[] = expense.extraDetails || [];
+  const { formatCurrency } = useFormatters();
 
   const paidByMap = getPaidByMap(expense);
   const extras: Record<string, number> = expense.extras || {};
@@ -66,7 +68,7 @@ export function ExpenseItem({
       const styles = getUserColorStyles(uid);
       return (
         <span key={uid} style={styles.text}>
-          {getPersonName(uid)} ฿{(amt as number).toLocaleString()}
+          {getPersonName(uid)} {formatCurrency(amt as number)}
         </span>
       );
     });
@@ -85,7 +87,7 @@ export function ExpenseItem({
               <div className="flex flex-wrap gap-1">
                 {payerNames}
               </div>
-              <span>• ฿{expense.amount.toLocaleString()}</span>
+              <span>• {formatCurrency(expense.amount)}</span>
             </div>
           </div>
         </div>
@@ -120,7 +122,7 @@ export function ExpenseItem({
           {extraDetails.map((detail, idx) => (
             <div key={detail.id || idx} className="flex justify-between text-xs text-warning/90">
               <span className="opacity-80">{detail.label || 'Item'} → {getPersonName(detail.forPerson)}</span>
-              <span className="font-bold">+฿{(detail.amount || 0).toLocaleString()}</span>
+              <span className="font-bold">+{formatCurrency(detail.amount || 0)}</span>
             </div>
           ))}
         </div>
@@ -128,7 +130,7 @@ export function ExpenseItem({
 
       <div className="bg-muted/50 rounded-md p-3">
         <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3">
-          {t('split_each')} (฿{perPerson.toLocaleString(undefined, { maximumFractionDigits: 2 })} {t('each')}
+          {t('split_each')} ({formatCurrency(perPerson)} {t('each')})
           {totalExtras > 0 && ` + ${t('extras')}`})
         </h4>
         <div className="space-y-2">
@@ -144,10 +146,10 @@ export function ExpenseItem({
                   <span style={getUserColorStyles(uid).text}>{getPersonName(uid)}</span>
                   {isPayer && ` (${t('payer')})`}
                   <span className="text-muted-foreground ml-1">
-                    ฿{personShare.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    {formatCurrency(personShare)}
                   </span>
                   {personExtra > 0 && (
-                    <span className="text-warning text-[10px] font-bold ml-1 tracking-tighter">(+฿{personExtra.toLocaleString()})</span>
+                    <span className="text-warning text-[10px] font-bold ml-1 tracking-tighter">(+{formatCurrency(personExtra)})</span>
                   )}
                 </span>
                 <div className="flex items-center space-x-2">

@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { Plus, X } from 'lucide-react';
+import { useFormatters } from '../../../hooks/useFormatters';
 import { cn } from '@/lib/utils';
 import { TimezoneSelector } from './TimezoneSelector';
 
@@ -24,6 +25,7 @@ export function TimelineForm({
 }: TimelineFormProps) {
   const { t } = useLanguage();
   const checklist = data.checklist || [];
+  const { currency } = useFormatters();
 
   const addChecklistItem = () => {
     setState((p: any) => ({
@@ -110,7 +112,7 @@ export function TimelineForm({
 
       {data.category === 'booking' && (
         <div className="space-y-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-md">
-          <Label className="text-amber-700 dark:text-amber-400">Estimated Cost (฿)</Label>
+          <Label className="text-amber-700 dark:text-amber-400">Estimated Cost ({currency})</Label>
           <Input 
             type="number"
             placeholder="0.00"

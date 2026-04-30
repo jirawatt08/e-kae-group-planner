@@ -12,12 +12,15 @@ import { Coins, Plus, Minus, ArrowUpRight, ArrowDownRight, User, Wallet } from '
 import { toast } from 'sonner';
 import { PotTransaction } from '../../types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useFormatters } from '../../hooks/useFormatters';
+import { CurrencyConverter } from './CurrencyConverter';
 
 export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const { potTransactions, timeline, trip, memberProfiles, loading: dataLoading } = useTripData();
   const [loading, setLoading] = useState(false);
+  const { formatCurrency } = useFormatters();
   
   const [isContributionOpen, setIsContributionOpen] = useState(false);
   const [isSpendingOpen, setIsSpendingOpen] = useState(false);
@@ -77,14 +80,14 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
               <CardContent className="pt-4 pb-4 px-5 sm:px-8">
                  <div className="flex justify-between items-center mb-2">
                    <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">{t('savings_goal') || 'Savings Goal'}</span>
-                   <span className="text-xs sm:text-sm font-bold text-foreground">฿{balance.toLocaleString()} / ฿{totalGoal.toLocaleString()}</span>
+                   <span className="text-xs sm:text-sm font-bold text-foreground">{formatCurrency(balance)} / {formatCurrency(totalGoal)}</span>
                  </div>
                  <div className="w-full bg-muted/50 rounded-full h-2.5 overflow-hidden">
                    <div className="bg-primary h-2.5 rounded-full transition-all duration-500" style={{ width: `${savingsProgress}%` }}></div>
                  </div>
                  {totalEstimatedCost > 0 && (
                    <p className="text-[10px] text-muted-foreground mt-2 italic opacity-80">
-                     * Includes ฿{totalEstimatedCost.toLocaleString()} from booking milestones.
+                     * Includes {formatCurrency(totalEstimatedCost)} from booking milestones.
                    </p>
                  )}
               </CardContent>
@@ -100,7 +103,7 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
               <span className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest">{t('pot_balance')}</span>
             </div>
             <div className="flex items-baseline gap-2 mb-8">
-              <span className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-foreground">฿{balance.toLocaleString()}</span>
+              <span className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-foreground">{formatCurrency(balance)}</span>
             </div>
             
             <div className="grid grid-cols-2 gap-4 pt-6 border-t border-border">
@@ -108,14 +111,14 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
                 <div className="text-[9px] sm:text-[10px] text-muted-foreground uppercase font-bold tracking-tighter opacity-80">{t('contributions')}</div>
                 <div className="text-base sm:text-lg font-bold flex items-center gap-1 text-success">
                   <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4" />
-                  ฿{totalIn.toLocaleString()}
+                  {formatCurrency(totalIn)}
                 </div>
               </div>
               <div className="space-y-1">
                 <div className="text-[9px] sm:text-[10px] text-muted-foreground uppercase font-bold tracking-tighter opacity-80">{t('spending')}</div>
                 <div className="text-base sm:text-lg font-bold flex items-center gap-1 text-destructive">
                   <ArrowDownRight className="h-3 w-3 sm:h-4 sm:w-4" />
-                  ฿{totalOut.toLocaleString()}
+                  {formatCurrency(totalOut)}
                 </div>
               </div>
             </div>
@@ -230,7 +233,7 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
                         <div className="text-[10px] text-muted-foreground truncate">{item.description}</div>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-success shrink-0 ml-2">+฿{item.amount.toLocaleString()}</div>
+                    <div className="text-sm font-bold text-success shrink-0 ml-2">+{formatCurrency(item.amount)}</div>
                   </div>
                 ))}
               </div>
@@ -255,13 +258,17 @@ export function PotTab({ tripId, canEdit }: { tripId: string; canEdit: boolean }
                         <div className="text-[10px] text-muted-foreground truncate">{item.userName}</div>
                       </div>
                     </div>
-                    <div className="text-sm font-bold text-destructive shrink-0 ml-2">-฿{item.amount.toLocaleString()}</div>
+                    <div className="text-sm font-bold text-destructive shrink-0 ml-2">-{formatCurrency(item.amount)}</div>
                   </div>
                 ))}
               </div>
             </div>
           </>
         )}
+      </div>
+
+      <div className="mt-8 pt-8 border-t border-border/50">
+        <CurrencyConverter />
       </div>
     </div>
   );

@@ -16,6 +16,8 @@ interface TripDataContextType {
   potTransactions: any[];
   memberProfiles: Record<string, any>;
   loading: boolean;
+  tripSettings: import('../types').TripSettings;
+  updateTripSettings: (settings: Partial<import('../types').TripSettings>) => Promise<void>;
 }
 
 const TripDataContext = createContext<TripDataContextType | undefined>(undefined);
@@ -85,29 +87,41 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
     fetchProfiles();
   }, [trip?.members]);
 
+  // 1. Trip Listener
   useEffect(() => {
     if (!tripId) return;
-
-    // 1. Trip Listener
+    
+    setLoading(true);
     const tripRef = doc(db, 'trips', tripId);
     const unsubTrip = onSnapshot(tripRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setTrip({ id: docSnap.id, ...data });
+      } else {
+        setTrip(null);
       }
       setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `trips/${tripId}`);
+      setLoading(false);
     });
 
-    // Sub-collections Listener (Only if member)
-    const isMember = trip?.members?.[user?.uid];
+    return () => unsubTrip();
+  }, [tripId]);
+
+  // 2. Sub-collections Listeners
+  useEffect(() => {
+    if (!tripId || !user || !trip) return;
+
+    // Only set up listeners if user is a member
+    const isMember = trip.members[user.uid];
     if (!isMember) {
       setTimeline([]);
       setExpenses([]);
       setIdeas([]);
       setActivities([]);
-      return () => unsubTrip();
+      setPotTransactions([]);
+      return;
     }
 
     // 2. Timeline Listener
@@ -147,15 +161,13 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
     });
 
     return () => {
-      unsubTrip();
       unsubTimeline();
       unsubExpenses();
       unsubIdeas();
       unsubActivities();
       unsubPot();
     };
-  }, [tripId, user, !!trip?.members?.[user?.uid]]);
-
+  }, [tripId, user?.uid, !!trip?.members?.[user?.uid]]);
   const contextValue = useMemo(() => ({
     trip,
     timeline,
@@ -164,8 +176,25 @@ export function TripDataProvider({ tripId, children }: { tripId: string, childre
     activities,
     potTransactions,
     memberProfiles,
-    loading
-  }), [trip, timeline, expenses, ideas, activities, potTransactions, memberProfiles, loading]);
+    loading,
+    tripSettings: {
+      timeFormat: trip?.settings?.timeFormat || '12h',
+      currency: trip?.settings?.currency || 'THB'
+    },
+    updateTripSettings: async (newSettings: Partial<import('../types').TripSettings>) => {
+      if (!tripId || !trip) return;
+      try {
+        await updateDoc(doc(db, 'trips', tripId), {
+          settings: {
+            ...(trip.settings || { timeFormat: '12h', currency: 'THB' }),
+            ...newSettings
+          }
+        });
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, `trips/${tripId}`);
+      }
+    }
+  }), [trip, timeline, expenses, ideas, activities, potTransactions, memberProfiles, loading, tripId]);
 
   return (
     <TripDataContext.Provider value={contextValue}>

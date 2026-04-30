@@ -7,6 +7,15 @@ export interface UserProfile {
 
 export type Role = 'owner' | 'editor' | 'viewer';
 
+export interface TripSettings {
+  /** '12h' = AM/PM, '24h' = HH:mm */
+  timeFormat: '12h' | '24h';
+  /** ISO 4217 currency code for the trip's primary currency */
+  currency: CurrencyCode;
+}
+
+export type CurrencyCode = 'THB' | 'USD' | 'JPY' | 'EUR' | 'GBP' | 'KRW' | 'CNY' | 'SGD' | 'MYR' | 'VND' | 'AUD';
+
 export interface Trip {
   id: string;
   name: string;
@@ -20,6 +29,7 @@ export interface Trip {
   updatedAt: any;
   defaultTimezone?: string;
   totalBudgetGoal?: number;
+  settings?: TripSettings;
 }
 
 export interface Expense {

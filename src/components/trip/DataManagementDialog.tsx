@@ -11,9 +11,11 @@ import { toast } from 'sonner';
 interface DataManagementDialogProps {
   tripId: string;
   tripName: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export function DataManagementDialog({ tripId, tripName }: DataManagementDialogProps) {
+export function DataManagementDialog({ tripId, tripName, open, onOpenChange }: DataManagementDialogProps) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -65,11 +67,7 @@ export function DataManagementDialog({ tripId, tripName }: DataManagementDialogP
   };
 
   return (
-    <Dialog>
-      <DialogTrigger render={<Button variant="outline" size="sm" className="gap-2" />}>
-        <Database className="h-4 w-4" />
-        {t('data_mgmt')}
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <div className="flex items-center gap-2 mb-1">
