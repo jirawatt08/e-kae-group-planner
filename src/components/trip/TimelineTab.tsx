@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTripData } from '../../contexts/TripDataContext';
@@ -11,6 +11,8 @@ import { safeFormat, getDayNumber, getDayColor, getStringHue } from '../../lib/d
 import { TimelineForm } from './timeline/TimelineForm';
 import { TimelineItem } from './timeline/TimelineItem';
 import { TimezoneBlock } from './timeline/TimezoneBlock';
+import { FloatingActions, FloatingAction } from '../ui/FloatingActions';
+import { ScrollAwareToolbar } from '../ui/ScrollAwareToolbar';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // ── Types ──
@@ -43,6 +45,9 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string; canEdit: bool
   const [viewMode, setViewMode] = useState<'full' | 'day'>('full');
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [collapsedBlocks, setCollapsedBlocks] = useState<Record<string, boolean>>({});
+
+  // ── Refs ──
+  const toolbarRef = useRef<HTMLDivElement>(null);
 
   // ── New event defaults ──
   const currentTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -132,6 +137,14 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string; canEdit: bool
     setCollapsedBlocks((prev) => ({ ...prev, [blockId]: !prev[blockId] }));
   };
 
+  /** Opens create dialog, optionally pre-filling the timezone */
+  const openCreateDialog = (timezone?: string) => {
+    if (timezone) {
+      setNewEvent((prev) => ({ ...prev, timezone }));
+    }
+    setIsCreateOpen(true);
+  };
+
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !canEdit) return;
@@ -164,8 +177,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string; canEdit: bool
       checklist: editingEvent.checklist || [],
       category: editingEvent.category || 'activity',
       estimatedCost: editingEvent.estimatedCost,
-      timezone:
-        editingEvent.timezone || trip?.defaultTimezone || currentTZ,
+      timezone: editingEvent.timezone || trip?.defaultTimezone || currentTZ,
     });
     if (success) {
       setIsEditOpen(false);
@@ -191,11 +203,37 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string; canEdit: bool
     setIsEditOpen(true);
   };
 
+  // ── FAB actions ──
+  const fabActions: FloatingAction[] = canEdit
+    ? [
+        {
+          id: 'add-event',
+          label: t('add_event') || 'Add Event',
+          icon: <Plus className="h-5 w-5" />,
+          onClick: () => openCreateDialog(),
+        },
+      ]
+    : [];
+
   // ── Render ──
   return (
     <div className="flex flex-col h-full">
-      {/* ── Toolbar ── */}
-      <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
+      {/* ── Layer 3: Scroll-aware mini-toolbar ── */}
+      <ScrollAwareToolbar
+        sentinelRef={toolbarRef}
+        canEdit={canEdit}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onAddEvent={() => openCreateDialog()}
+        labels={{
+          fullPlan: t('full_plan') || 'Full Plan',
+          dayView: t('day_view') || 'Day View',
+          addEvent: t('add_event') || 'Add Event',
+        }}
+      />
+
+      {/* ── Original Toolbar (acts as IntersectionObserver sentinel) ── */}
+      <div ref={toolbarRef} className="flex flex-wrap justify-between items-center mb-4 gap-2">
         <h2 className="text-xl font-semibold">{t('itinerary')}</h2>
         <div className="flex items-center gap-2">
           {/* View mode toggle */}
@@ -222,7 +260,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string; canEdit: bool
             </button>
           </div>
 
-          {/* Create event dialog */}
+          {/* Create event dialog trigger (original location) */}
           {canEdit && (
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
               <DialogTrigger render={<Button size="sm" />}>
@@ -270,7 +308,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string; canEdit: bool
         </div>
       )}
 
-      {/* ── Edit event dialog ── */}
+      {/* ── Edit event dialog (shared, not tied to any trigger) ── */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent>
           <DialogHeader>
@@ -328,6 +366,7 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string; canEdit: bool
                 canEdit={canEdit}
                 onEdit={openEditDialog}
                 onDelete={handleDelete}
+                onAddEvent={openCreateDialog}
               />
             ))}
           </div>
@@ -361,6 +400,12 @@ export function TimelineTab({ tripId, canEdit }: { tripId: string; canEdit: bool
           </div>
         )}
       </div>
+
+      {/* ── Layer 1: Floating Action Button ── */}
+      <FloatingActions
+        actions={fabActions}
+        visible={canEdit && !dataLoading && events.length > 0}
+      />
     </div>
   );
 }

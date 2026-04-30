@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, ChevronDown, ChevronRight } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { useLanguage } from '../../../contexts/LanguageContext';
 import { TimelineEvent } from '../../../types';
 import { useTimezoneTheme } from './useTimezoneTheme';
@@ -33,6 +33,8 @@ interface TimezoneBlockProps {
   onEdit: (event: TimelineEvent) => void;
   /** Deletes an event by ID */
   onDelete: (eventId: string) => void;
+  /** Opens the create dialog pre-filled with this block's timezone */
+  onAddEvent?: (timezone: string) => void;
 }
 
 /**
@@ -40,6 +42,7 @@ interface TimezoneBlockProps {
  * - A sticky, collapsible header with timezone info
  * - When collapsed: compact event summary list (titles + times)
  * - When expanded: day-grouped timeline with dot-connected event cards
+ * - An "Add event here" footer button (when expanded + canEdit)
  */
 export function TimezoneBlock({
   timezone,
@@ -51,6 +54,7 @@ export function TimezoneBlock({
   canEdit,
   onEdit,
   onDelete,
+  onAddEvent,
 }: TimezoneBlockProps) {
   const { t } = useLanguage();
   const theme = useTimezoneTheme(timezone);
@@ -152,6 +156,23 @@ export function TimezoneBlock({
               </div>
             </div>
           ))}
+
+          {/* ── Layer 2: Per-timezone "Add event here" ── */}
+          {canEdit && onAddEvent && (
+            <button
+              type="button"
+              onClick={() => onAddEvent(timezone)}
+              className="w-full flex items-center justify-center gap-2
+                         py-2.5 rounded-lg border border-dashed
+                         text-xs sm:text-sm font-medium
+                         transition-all hover:bg-muted/40 active:scale-[0.98]
+                         text-muted-foreground hover:text-foreground"
+              style={{ borderColor: theme.cardBorder }}
+            >
+              <Plus className="h-3.5 w-3.5" style={{ color: theme.accent }} />
+              <span>{t('add_event') || 'Add event'} in {timezone.split('/').pop()?.replace(/_/g, ' ')}</span>
+            </button>
+          )}
         </div>
       )}
     </div>
