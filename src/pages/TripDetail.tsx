@@ -227,7 +227,7 @@ function TripDetailContent() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col transition-colors duration-300">
-      <header className="bg-card border-b sticky top-0 z-20 shadow-sm">
+      <header className="bg-card border-b sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="shrink-0">

@@ -16,6 +16,13 @@ export interface TripSettings {
 
 export type CurrencyCode = 'THB' | 'USD' | 'JPY' | 'EUR' | 'GBP' | 'KRW' | 'CNY' | 'SGD' | 'MYR' | 'VND' | 'AUD';
 
+interface Currency_Info {
+  code: CurrencyCode;
+  value:number;
+}
+
+
+
 export interface Trip {
   id: string;
   name: string;
